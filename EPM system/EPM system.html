@@ -543,11 +543,27 @@
 
             try {
                 const pdf = await pdfjsLib.getDocument({ data: await input.files[0].arrayBuffer() }).promise;
+
+                // 同時收集：① allText（內容流順序，供站點/模治具循序偵測）
+                //           ② rawItems（含座標，供材料定位偵測）
                 let allText = [];
+                let rawItems = []; // { str, x, y, page }
+
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
+                    const vp = page.getViewport({ scale: 1 });
                     const content = await page.getTextContent();
-                    allText.push(...content.items.map(it => it.str.trim()));
+                    content.items.forEach(it => {
+                        const str = it.str.trim();
+                        if (!str) return;
+                        allText.push(str);
+                        rawItems.push({
+                            str,
+                            x: it.transform[4],
+                            y: vp.height - it.transform[5], // 轉換為由上往下的座標
+                            page: i
+                        });
+                    });
                 }
 
                 let pdfItemNo = "";
@@ -568,9 +584,12 @@
                 let jigs = [], parts = [], consumables = [], stations = [];
                 let seenMaterialCodes = new Set();
                 let seenStationCodes = new Set();
+                let seenMaterialIds = new Set();
 
+                // === 站點 & 模治具偵測：使用內容流順序 allText ===
                 for (let i = 0; i < allText.length; i++) {
                     const text = allText[i];
+
                     if (/^[A-Z1-9]\d{3}-\d{2}$/.test(text)) {
                         if (!seenStationCodes.has(text)) {
                             let stationName = "未知站點";
@@ -584,29 +603,80 @@
                             seenStationCodes.add(text);
                         }
                     }
+
                     if (['穴拔(形狀)', '裁斷拔(形狀)', '自動印刷'].includes(text)) {
-                        let jigCode = "";
-                        for (let j = i + 1; j < i + 15; j++) {
-                            if (allText[j] && allText[j].includes('ZT')) {
-                                jigCode += allText[j];
-                                if (allText[j + 1] && allText[j + 1].includes('ZT')) continue;
-                                break;
-                            }
+                        let jigCodes = [];
+                        for (let j = i + 1; j < i + 20; j++) {
+                            if (!allText[j]) continue;
+                            if (['穴拔(形狀)', '裁斷拔(形狀)', '自動印刷'].includes(allText[j])) break;
+                            if (/^[A-Z1-9]\d{3}-\d{2}$/.test(allText[j])) break;
+                            if (/^T\d+/.test(allText[j])) break;
+                            if (/^ZT/.test(allText[j])) jigCodes.push(allText[j].trim());
                         }
-                        if (jigCode) jigs.push({ station: text, code: jigCode });
-                    }
-                    if (/^T\d+/.test(text) || text.includes("(購入部品)")) {
-                        let materialCode = "";
-                        for (let k = i + 1; k < i + 20; k++) {
-                            if (/^\d{7,10}$/.test(allText[k])) { materialCode = allText[k]; break; }
-                        }
-                        if (materialCode && !seenMaterialCodes.has(materialCode)) {
-                            if (/^T\d+/.test(text)) parts.push({ id: text, name: allText[i+1]||"", code: materialCode });
-                            else consumables.push({ name: text, code: materialCode });
-                            seenMaterialCodes.add(materialCode);
-                        }
+                        if (jigCodes.length > 0) jigs.push({ station: text, code: jigCodes.join('\n') });
                     }
                 }
+
+                // === 材料偵測：座標定位法 ===
+                // PDF 欄位佈局（由左至右）：
+                //   識別碼欄 x ≈ 3 (x < 20)
+                //   材料名稱欄 x ≈ 57 (40 ~ 210)
+                //   材料編號欄 x ≈ 216 (200 ~ 235)，純數字 7-10 碼
+                // 材料名稱可能跨越識別碼行的上下（±15 點範圍）
+
+                const Y_RANGE = 15; // 名稱欄搜尋範圍：識別碼 y ± 15 點
+
+                rawItems.forEach(item => {
+                    const { str: text, x, y, page } = item;
+                    if (x > 20) return; // 只處理識別碼欄
+
+                    // --- 零件列表 (T開頭：T01~T02, T03...) ---
+                    if (/^T\d+/.test(text)) {
+                        // 找同行材料編號（純 7-10 位數字，位於編號欄）
+                        const codeItem = rawItems.find(it =>
+                            it.page === page && Math.abs(it.y - y) <= 3 &&
+                            it.x >= 200 && it.x <= 235 && /^\d{7,10}$/.test(it.str)
+                        );
+                        if (!codeItem || seenMaterialCodes.has(codeItem.str)) return;
+
+                        // 蒐集名稱欄在 ±Y_RANGE 範圍內的所有文字，依 y→x 排序拼接
+                        const nameItems = rawItems
+                            .filter(it =>
+                                it.page === page && Math.abs(it.y - y) <= Y_RANGE &&
+                                it.x >= 40 && it.x <= 210
+                            )
+                            .sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
+                        const fullName = nameItems.map(it => it.str).join('');
+
+                        parts.push({ id: text, name: fullName, code: codeItem.str });
+                        seenMaterialCodes.add(codeItem.str);
+                    }
+
+                    // --- 補材列表 (一個字母+兩位數，非T，如 P06, Q12, P07) ---
+                    if (/^[A-Z]\d{2}$/.test(text) && !/^T/.test(text)) {
+                        if (seenMaterialIds.has(text)) return; // 同識別碼只取第一筆
+                        seenMaterialIds.add(text);
+
+                        const codeItem = rawItems.find(it =>
+                            it.page === page && Math.abs(it.y - y) <= 3 &&
+                            it.x >= 200 && it.x <= 235 && /^\d{7,10}$/.test(it.str)
+                        );
+                        if (!codeItem || seenMaterialCodes.has(codeItem.str)) return;
+
+                        const nameItems = rawItems
+                            .filter(it =>
+                                it.page === page && Math.abs(it.y - y) <= Y_RANGE &&
+                                it.x >= 40 && it.x <= 210
+                            )
+                            .sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
+                        const fullName = nameItems.map(it => it.str).join('');
+
+                        if (fullName.includes('購入部品')) {
+                            consumables.push({ name: fullName, code: codeItem.str });
+                            seenMaterialCodes.add(codeItem.str);
+                        }
+                    }
+                });
 
                 const index = projectState.findIndex(p => p.id === currentProjectId);
                 projectState[index].pdfParsed = true;
