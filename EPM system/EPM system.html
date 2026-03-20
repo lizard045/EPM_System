@@ -577,7 +577,7 @@
             
             render('listStations', p.pdfData.stations, d => {
                 const isMatch = matchedPdfStation && d.code === matchedPdfStation.code;
-                const activeClass = isMatch ? 'li-current-station' : '';
+                    const activeClass = isMatch ? 'li-current-station' : '';
                 return `<li class="${activeClass}"><span class="tag-badge">${d.code}</span>${d.name}</li>`;
             });
 
