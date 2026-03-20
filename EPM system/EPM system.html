@@ -207,7 +207,7 @@
             if (!currentProjectId) { el.textContent = ''; el.className = ''; return; }
             const p = projectState.find(x => x.id === currentProjectId);
             if (!p) { el.textContent = ''; el.className = ''; return; }
-            const station = getCurrentStationDisplay(p.workOrder);
+            const station = getCurrentStationDisplay(p.workOrder, p.pdfData?.stations);
             el.textContent = station || "-";
             el.className = station === "工單錯誤" ? "current-pos-tag error" : "";
         }
@@ -256,13 +256,32 @@
             }
         }
 
-        function getCurrentStationDisplay(workOrder) {
+        function findMatchingPdfStation(wipStation, pdfStations) {
+            if (!wipStation || !pdfStations?.length) return null;
+            const w = String(wipStation).trim();
+            const codePrefix = w.match(/\(([^)]+)\)/)?.[1] || ""; // 從 (L210) 取出 L210
+            for (const s of pdfStations) {
+                const code = String(s.code || "").trim();
+                const name = String(s.name || "").trim();
+                const codeBase = code ? code.split("-")[0] : "";
+                if (w.includes(code) || w.includes(name) || w.includes(codeBase) ||
+                    (codePrefix && (code.includes(codePrefix) || codeBase === codePrefix))) return s;
+            }
+            return null;
+        }
+
+        function getCurrentStationDisplay(workOrder, pdfStations) {
             if (!workOrder || !String(workOrder).trim()) return "";
             if (Object.keys(stationProgressMap).length === 0) return "";
             const wo = String(workOrder).trim();
-            const station = stationProgressMap[wo];
-            if (station !== undefined && station !== "") return station;
-            return "工單錯誤";
+            const wipStation = stationProgressMap[wo];
+            if (wipStation === undefined || wipStation === "") return "工單錯誤";
+            if (pdfStations?.length) {
+                const matched = findMatchingPdfStation(wipStation, pdfStations);
+                if (matched) return (matched.code ? matched.code : "") + (matched.name ? (matched.code ? " " : "") + matched.name : "");
+                return "工單錯誤";
+            }
+            return wipStation;
         }
 
         function getProjectAlerts(p) {
@@ -298,7 +317,7 @@
             area.innerHTML = '';
             projects.forEach(p => {
                 const alerts = getProjectAlerts(p);
-                const currentStationName = getCurrentStationDisplay(p.workOrder);
+                const currentStationName = getCurrentStationDisplay(p.workOrder, p.pdfData?.stations);
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.onclick = () => openDetail(p.id);
@@ -336,7 +355,7 @@
 
             projects.forEach(p => {
                 const alerts = getProjectAlerts(p);
-                const currentStationName = getCurrentStationDisplay(p.workOrder) || "-";
+                const currentStationName = getCurrentStationDisplay(p.workOrder, p.pdfData?.stations) || "-";
                 
                 let alertTags = "";
                 if (!p.pdfParsed) alertTags += `<div class="pdf-remind" style="display:inline-block">尚未匯入PDF</div> `;
@@ -520,7 +539,11 @@
 
             const render = (id, data, fn) => document.getElementById(id).innerHTML = (data || []).map(fn).join('') || '<li>無資料</li>';
             const prog = partDeliveryMap[p.formNo?.toUpperCase()] || "";
-            const currentStationFromExcel = getCurrentStationDisplay(p.workOrder);
+            const wipStation = p.workOrder?.trim() ? stationProgressMap[p.workOrder.trim()] : null;
+            const matchedPdfStation = wipStation && p.pdfData?.stations ? findMatchingPdfStation(wipStation, p.pdfData.stations) : null;
+            const currentStationDisplay = matchedPdfStation
+                ? (matchedPdfStation.code || "") + (matchedPdfStation.name ? (matchedPdfStation.code ? " " : "") + matchedPdfStation.name : "")
+                : (wipStation ? "工單錯誤" : "");
 
             const fixDate = (val) => {
                 if (!val) return "";
@@ -553,7 +576,7 @@
             render('listConsumables', p.pdfData.consumables, d => `<li>${d.name}：<b>${d.code}</b></li>`);
             
             render('listStations', p.pdfData.stations, d => {
-                const isMatch = currentStationFromExcel && (d.code === currentStationFromExcel);
+                const isMatch = matchedPdfStation && d.code === matchedPdfStation.code;
                 const activeClass = isMatch ? 'li-current-station' : '';
                 return `<li class="${activeClass}"><span class="tag-badge">${d.code}</span>${d.name}</li>`;
             });
