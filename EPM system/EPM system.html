@@ -37,6 +37,7 @@
         .wo-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
         .work-order-tag { background-color: #e1dfdd; color: #0078d4; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
         .current-pos-tag { background-color: #fff9c4; color: #856404; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; border: 1px solid #ffeeba; }
+        .current-pos-tag.error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
         .pdf-remind { color: #d83b01; font-size: 0.75em; font-weight: bold; background: #fff4ce; padding: 2px 6px; border-radius: 4px; border: 1px solid #fde38a; }
 
         .mpn-title { font-size: 1.25em; font-weight: bold; color: #201f1e; margin: 0 0 10px 0; word-break: break-all; }
@@ -130,6 +131,10 @@
                 <input type="text" id="workOrderInput" placeholder="請輸入工單號碼..." style="width: 250px;"
                     oninput="updateWorkOrder(this.value)">
             </div>
+            <div style="margin: 10px 0;">
+                <span style="font-weight: bold;">📍 目前站點：</span>
+                <span id="currentStationDisplay"></span>
+            </div>
             <div class="pdf-section">
                 <h3>📄 Traveler PDF 解析</h3>
                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -193,6 +198,18 @@
             document.getElementById('excelStatus').innerText = Object.keys(toolDeliveryMap).length > 0 ? `✅ 已載入工具` : "";
             document.getElementById('partStatus').innerText = Object.keys(partDeliveryMap).length > 0 ? `✅ 已載入備料` : "";
             document.getElementById('stationStatus').innerText = Object.keys(stationProgressMap).length > 0 ? `✅ 已載入站點` : "";
+            refreshDetailStationDisplay();
+        }
+
+        function refreshDetailStationDisplay() {
+            const el = document.getElementById('currentStationDisplay');
+            if (!el) return;
+            if (!currentProjectId) { el.textContent = ''; el.className = ''; return; }
+            const p = projectState.find(x => x.id === currentProjectId);
+            if (!p) { el.textContent = ''; el.className = ''; return; }
+            const station = getCurrentStationDisplay(p.workOrder);
+            el.textContent = station || "-";
+            el.className = station === "工單錯誤" ? "current-pos-tag error" : "";
         }
 
         function clearAllData() {
@@ -239,6 +256,15 @@
             }
         }
 
+        function getCurrentStationDisplay(workOrder) {
+            if (!workOrder || !String(workOrder).trim()) return "";
+            if (Object.keys(stationProgressMap).length === 0) return "";
+            const wo = String(workOrder).trim();
+            const station = stationProgressMap[wo];
+            if (station !== undefined && station !== "") return station;
+            return "工單錯誤";
+        }
+
         function getProjectAlerts(p) {
             let toolingIncomplete = false;
             let partsIncomplete = false;
@@ -272,7 +298,7 @@
             area.innerHTML = '';
             projects.forEach(p => {
                 const alerts = getProjectAlerts(p);
-                const currentStationName = stationProgressMap[p.workOrder] || "";
+                const currentStationName = getCurrentStationDisplay(p.workOrder);
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.onclick = () => openDetail(p.id);
@@ -284,7 +310,7 @@
                 card.innerHTML = `
                     <div class="wo-header">
                         <div class="work-order-tag">${p.workOrder || '未填工單'}</div>
-                        ${currentStationName ? `<div class="current-pos-tag">目前站點：${currentStationName}</div>` : ''}
+                        ${currentStationName ? `<div class="current-pos-tag${currentStationName === '工單錯誤' ? ' error' : ''}">目前站點：${currentStationName}</div>` : ''}
                         ${!p.pdfParsed ? '<span class="pdf-remind">尚未匯入手順書</span>' : ''}
                     </div>
                     <div class="mpn-title">${p.mpn || '未知品目'}</div>
@@ -310,7 +336,7 @@
 
             projects.forEach(p => {
                 const alerts = getProjectAlerts(p);
-                const currentStationName = stationProgressMap[p.workOrder] || "-";
+                const currentStationName = getCurrentStationDisplay(p.workOrder) || "-";
                 
                 let alertTags = "";
                 if (!p.pdfParsed) alertTags += `<div class="pdf-remind" style="display:inline-block">尚未匯入PDF</div> `;
@@ -321,7 +347,7 @@
                 html += `<tr onclick="openDetail(${p.id})">
                     <td><span class="work-order-tag">${p.workOrder || '未填'}</span></td>
                     <td style="font-weight:bold">${p.mpn}</td>
-                    <td><span class="${currentStationName !== '-' ? 'current-pos-tag' : ''}">${currentStationName}</span></td>
+                    <td><span class="${currentStationName !== '-' ? 'current-pos-tag' + (currentStationName === '工單錯誤' ? ' error' : '') : ''}">${currentStationName}</span></td>
                     <td style="color:#005a9e">${p.formNo}</td>
                     <td>${p.qty} PCS</td>
                     <td>${p.deadline}</td>
@@ -472,6 +498,7 @@
             document.getElementById('detailMpn').innerText = "戰情品目：" + p.mpn;
             document.getElementById('workOrderInput').value = p.workOrder || '';
             renderPdfResult(p);
+            refreshDetailStationDisplay();
         }
 
         function closeDetail() { document.getElementById('detailView').classList.add('hidden'); document.getElementById('dashboardView').classList.remove('hidden'); renderDashboard(); }
@@ -482,6 +509,7 @@
                 projectState[i].workOrder = v; 
                 localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projectState)); 
                 renderPdfResult(projectState[i]);
+                refreshDetailStationDisplay();
             }
         }
 
@@ -492,7 +520,7 @@
 
             const render = (id, data, fn) => document.getElementById(id).innerHTML = (data || []).map(fn).join('') || '<li>無資料</li>';
             const prog = partDeliveryMap[p.formNo?.toUpperCase()] || "";
-            const currentStationFromExcel = stationProgressMap[p.workOrder] || "";
+            const currentStationFromExcel = getCurrentStationDisplay(p.workOrder);
 
             const fixDate = (val) => {
                 if (!val) return "";
