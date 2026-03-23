@@ -5,8 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>硬體 EPM 專案戰情室 V38.0</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', '微軟正黑體', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; color: #333; }
@@ -136,11 +134,11 @@
                 <span id="currentStationDisplay"></span>
             </div>
             <div class="pdf-section">
-                <h3>📄 Traveler PDF 解析</h3>
+                <h3>Traveler 手順書解析 (Excel)</h3>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <input type="file" id="pdfInput" accept=".pdf">
-                    <button onclick="processPDF()">啟動解析</button>
-                    <span id="pdfProcessStatus" style="font-weight: bold;"></span>
+                    <input type="file" id="travelerExcelInput" accept=".xlsx, .xls">
+                    <button onclick="processTravelerExcel()">啟動解析</button>
+                    <span id="travelerProcessStatus" style="font-weight: bold;"></span>
                 </div>
             </div>
             <div id="pdfResultArea" class="hidden">
@@ -577,7 +575,7 @@
             
             render('listStations', p.pdfData.stations, d => {
                 const isMatch = matchedPdfStation && d.code === matchedPdfStation.code;
-                    const activeClass = isMatch ? 'li-current-station' : '';
+                const activeClass = isMatch ? 'li-current-station' : '';
                 return `<li class="${activeClass}"><span class="tag-badge">${d.code}</span>${d.name}</li>`;
             });
 
@@ -585,158 +583,107 @@
             if (sArea) sArea.innerHTML = prog.includes("零件備妥") ? `<div class="part-ready-status">✅ 零件備妥</div>` : `<div class="part-warning-status">⚠️ 備料未齊</div>`;
         }
 
-        async function processPDF() {
-            const input = document.getElementById('pdfInput');
-            if (!input.files.length) return;
-            const statusMsg = document.getElementById('pdfProcessStatus');
+        function processTravelerExcel() {
+            const input = document.getElementById('travelerExcelInput');
+            if (!input.files || !input.files[0]) return;
+            const statusMsg = document.getElementById('travelerProcessStatus');
             const proj = projectState.find(p => p.id === currentProjectId);
-            statusMsg.innerText = "⏳ 解析中...";
+            if (!proj) return;
+            statusMsg.innerText = "解析中...";
 
-            try {
-                const pdf = await pdfjsLib.getDocument({ data: await input.files[0].arrayBuffer() }).promise;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    let jigs = [], parts = [], consumables = [], stations = [];
+                    let seenStationCodes = new Set();
+                    let seenMaterialIds = new Set();
 
-                // 同時收集：① allText（內容流順序，供站點/模治具循序偵測）
-                //           ② rawItems（含座標，供材料定位偵測）
-                let allText = [];
-                let rawItems = []; // { str, x, y, page }
+                    const procSheetNames = wb.SheetNames.filter(n => /^手順書\(主\)/.test(n));
+                    for (const sheetName of procSheetNames) {
+                        const ws = wb.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                        for (let r = 5; r < rows.length; r++) {
+                            const row = rows[r] || [];
+                            const col1 = String(row[1] || '').trim();
+                            const col2 = String(row[2] || '').trim();
+                            const col6 = String(row[6] || '').trim();
 
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const vp = page.getViewport({ scale: 1 });
-                    const content = await page.getTextContent();
-                    content.items.forEach(it => {
-                        const str = it.str.trim();
-                        if (!str) return;
-                        allText.push(str);
-                        rawItems.push({
-                            str,
-                            x: it.transform[4],
-                            y: vp.height - it.transform[5], // 轉換為由上往下的座標
-                            page: i
-                        });
-                    });
-                }
+                            if (/^[A-Z]\d{3}-\d{2}$/.test(col1) && col2 && !seenStationCodes.has(col1)) {
+                                seenStationCodes.add(col1);
+                                stations.push({ code: col1, name: col2 });
+                            }
 
-                let pdfItemNo = "";
-                const itemLabelIdx = allText.findIndex(t => t.includes("品目番號") || t === "品目");
-                if (itemLabelIdx !== -1) {
-                    for (let k = itemLabelIdx + 1; k < itemLabelIdx + 5; k++) {
-                        if (allText[k] && /^[A-Z0-9-]{5,}$/.test(allText[k])) { pdfItemNo = allText[k]; break; }
+                            if (['穴拔(形狀)', '裁斷拔(形狀)', '自動印刷'].includes(col2) && col6) {
+                                const codes = col6.split(/\r?\n/).map(c => c.trim()).filter(c => /^ZT/.test(c));
+                                if (codes.length) jigs.push({ station: col2, code: codes.join('\n') });
+                            }
+                        }
                     }
-                }
 
-                const normProj = proj.mpn.replace(/[^A-Z0-9]/g, '');
-                const normPdf = pdfItemNo.replace(/[^A-Z0-9]/g, '');
-                if (normPdf && !normProj.includes(normPdf) && !normPdf.includes(normProj)) {
-                    alert(`❌ 品目驗證失敗！\nPDF 品目為：${pdfItemNo}\n與專案品目：${proj.mpn} 不符`);
-                    statusMsg.innerText = "❌ 品目不符"; return;
-                }
+                    const bomSheetNames = wb.SheetNames.filter(n => /^手順書\(BOM\)/.test(n));
+                    for (const sheetName of bomSheetNames) {
+                        const ws = wb.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                        for (let r = 5; r < rows.length; r++) {
+                            const row = rows[r] || [];
+                            const col0 = String(row[0] || '').trim();
+                            const col1 = String(row[1] || '').trim();
+                            const col3 = row[3];
+                            const code = String(col3 !== undefined && col3 !== null ? col3 : '').trim();
 
-                let jigs = [], parts = [], consumables = [], stations = [];
-                let seenMaterialCodes = new Set();
-                let seenStationCodes = new Set();
-                let seenMaterialIds = new Set();
-
-                // === 站點 & 模治具偵測：使用內容流順序 allText ===
-                for (let i = 0; i < allText.length; i++) {
-                    const text = allText[i];
-
-                    if (/^[A-Z1-9]\d{3}-\d{2}$/.test(text)) {
-                        if (!seenStationCodes.has(text)) {
-                            let stationName = "未知站點";
-                            for (let k = i + 1; k < i + 5; k++) {
-                                let cand = allText[k];
-                                if (cand && !cand.includes('YK') && !cand.includes('YM') && !/^[A-Z]\d{2,}/.test(cand) && cand.length > 2) {
-                                    stationName = cand; break;
+                            if (/^T\d+/.test(col0)) {
+                                if (!seenMaterialIds.has('P:' + col0)) {
+                                    seenMaterialIds.add('P:' + col0);
+                                    if (/^\d{7,10}$/.test(code)) parts.push({ id: col0, name: col1, code });
+                                }
+                            } else if (col1.includes('購入部品') && code) {
+                                if (!seenMaterialIds.has('C:' + col0)) {
+                                    seenMaterialIds.add('C:' + col0);
+                                    consumables.push({ name: col1, code });
                                 }
                             }
-                            stations.push({ code: text, name: stationName });
-                            seenStationCodes.add(text);
                         }
                     }
 
-                    if (['穴拔(形狀)', '裁斷拔(形狀)', '自動印刷'].includes(text)) {
-                        let jigCodes = [];
-                        for (let j = i + 1; j < i + 20; j++) {
-                            if (!allText[j]) continue;
-                            if (['穴拔(形狀)', '裁斷拔(形狀)', '自動印刷'].includes(allText[j])) break;
-                            if (/^[A-Z1-9]\d{3}-\d{2}$/.test(allText[j])) break;
-                            if (/^T\d+/.test(allText[j])) break;
-                            if (/^ZT/.test(allText[j])) jigCodes.push(allText[j].trim());
+                    let excelItemNo = "";
+                    for (const n of wb.SheetNames) {
+                        const ws = wb.Sheets[n];
+                        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                        for (let r = 0; r < Math.min(6, rows.length); r++) {
+                            const row = rows[r] || [];
+                            for (let c = 0; c < row.length; c++) {
+                                const v = String(row[c] || '');
+                                if (/^[A-Z]{2}\d{4}-\d{2}[A-Z]?$/.test(v)) { excelItemNo = v; break; }
+                            }
+                            if (excelItemNo) break;
                         }
-                        if (jigCodes.length > 0) jigs.push({ station: text, code: jigCodes.join('\n') });
+                        if (excelItemNo) break;
                     }
+
+                    const normProj = proj.mpn.replace(/[^A-Z0-9]/g, '');
+                    const normExcel = (excelItemNo || '').replace(/[^A-Z0-9]/g, '');
+                    if (normExcel && !normProj.includes(normExcel) && !normExcel.includes(normProj)) {
+                        alert("品目驗證失敗！\nExcel 品目為：" + excelItemNo + "\n與專案品目：" + proj.mpn + " 不符");
+                        statusMsg.innerText = "品目不符";
+                        return;
+                    }
+
+                    const index = projectState.findIndex(p => p.id === currentProjectId);
+                    projectState[index].pdfParsed = true;
+                    projectState[index].pdfData = { jigs, parts, consumables, stations };
+                    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projectState));
+                    statusMsg.innerText = "解析完畢";
+                    renderPdfResult(projectState[index]);
+                    renderDashboard();
+                    refreshDetailStationDisplay();
+                } catch (err) {
+                    console.error(err);
+                    statusMsg.innerText = "解析出錯";
                 }
-
-                // === 材料偵測：座標定位法 ===
-                // PDF 欄位佈局（由左至右）：
-                //   識別碼欄 x ≈ 3 (x < 20)
-                //   材料名稱欄 x ≈ 57 (40 ~ 210)
-                //   材料編號欄 x ≈ 216 (200 ~ 235)，純數字 7-10 碼
-                // 材料名稱可能跨越識別碼行的上下（±15 點範圍）
-
-                const Y_RANGE = 15; // 名稱欄搜尋範圍：識別碼 y ± 15 點
-
-                rawItems.forEach(item => {
-                    const { str: text, x, y, page } = item;
-                    if (x > 20) return; // 只處理識別碼欄
-
-                    // --- 零件列表 (T開頭：T01~T02, T03...) ---
-                    if (/^T\d+/.test(text)) {
-                        // 找同行材料編號（純 7-10 位數字，位於編號欄）
-                        const codeItem = rawItems.find(it =>
-                            it.page === page && Math.abs(it.y - y) <= 3 &&
-                            it.x >= 200 && it.x <= 235 && /^\d{7,10}$/.test(it.str)
-                        );
-                        if (!codeItem || seenMaterialCodes.has(codeItem.str)) return;
-
-                        // 蒐集名稱欄在 ±Y_RANGE 範圍內的所有文字，依 y→x 排序拼接
-                        const nameItems = rawItems
-                            .filter(it =>
-                                it.page === page && Math.abs(it.y - y) <= Y_RANGE &&
-                                it.x >= 40 && it.x <= 210
-                            )
-                            .sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
-                        const fullName = nameItems.map(it => it.str).join('');
-
-                        parts.push({ id: text, name: fullName, code: codeItem.str });
-                        seenMaterialCodes.add(codeItem.str);
-                    }
-
-                    // --- 補材列表 (一個字母+兩位數，非T，如 P06, Q12, P07) ---
-                    if (/^[A-Z]\d{2}$/.test(text) && !/^T/.test(text)) {
-                        if (seenMaterialIds.has(text)) return; // 同識別碼只取第一筆
-                        seenMaterialIds.add(text);
-
-                        const codeItem = rawItems.find(it =>
-                            it.page === page && Math.abs(it.y - y) <= 3 &&
-                            it.x >= 200 && it.x <= 235 && /^\d{7,10}$/.test(it.str)
-                        );
-                        if (!codeItem || seenMaterialCodes.has(codeItem.str)) return;
-
-                        const nameItems = rawItems
-                            .filter(it =>
-                                it.page === page && Math.abs(it.y - y) <= Y_RANGE &&
-                                it.x >= 40 && it.x <= 210
-                            )
-                            .sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
-                        const fullName = nameItems.map(it => it.str).join('');
-
-                        if (fullName.includes('購入部品')) {
-                            consumables.push({ name: fullName, code: codeItem.str });
-                            seenMaterialCodes.add(codeItem.str);
-                        }
-                    }
-                });
-
-                const index = projectState.findIndex(p => p.id === currentProjectId);
-                projectState[index].pdfParsed = true;
-                projectState[index].pdfData = { jigs, parts, consumables, stations };
-                localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projectState));
-                statusMsg.innerText = "✅ 解析完畢";
-                renderPdfResult(projectState[index]);
-                renderDashboard();
-            } catch (err) { console.error(err); statusMsg.innerText = "❌ 解析出錯"; }
+            };
+            reader.readAsArrayBuffer(input.files[0]);
+            input.value = '';
         }
     </script>
 </body>
