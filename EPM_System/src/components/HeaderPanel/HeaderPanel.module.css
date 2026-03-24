@@ -1,0 +1,132 @@
+.headerPanel {
+  background: #ffffff;
+  padding: 20px 30px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 25px;
+}
+
+.headerTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.title {
+  margin: 0;
+  color: #005a9e;
+  font-size: 1.25rem;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 8px;
+}
+
+.btnOutline {
+  background-color: transparent;
+  color: #005a9e;
+  border: 2px solid #005a9e;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.btnOutline:hover {
+  background-color: rgba(0, 90, 158, 0.1);
+}
+
+.btnOutline.active {
+  background-color: #005a9e;
+  color: white;
+}
+
+.uploadArea {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.uploadGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.uploadLabel {
+  font-size: 0.85em;
+  font-weight: bold;
+  color: #495057;
+}
+
+.statusMsg {
+  font-size: 0.8em;
+  font-weight: bold;
+  margin-top: 5px;
+  color: #107c10;
+  min-height: 1.2em;
+}
+
+.btnDanger {
+  background-color: #d83b01;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.btnDanger:hover {
+  background-color: #b83300;
+}
+
+.uploadGroup button {
+  background-color: #005a9e;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.uploadGroup button:hover {
+  background-color: #0078d4;
+}
+
+.btnExcel {
+  background-color: #107c10 !important;
+}
+
+.btnExcel:hover {
+  background-color: #0d6b0d !important;
+}
+
+.btnPartExcel {
+  background-color: #6264a7 !important;
+}
+
+.btnPartExcel:hover {
+  background-color: #4f5093 !important;
+}
+
+.btnStation {
+  background-color: #8b5cf6 !important;
+}
+
+.btnStation:hover {
+  background-color: #7c3aed !important;
+}

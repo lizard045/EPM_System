@@ -1,0 +1,92 @@
+.resultArea {
+  margin-top: 25px;
+}
+
+.resultBlock {
+  margin-top: 25px;
+}
+
+.resultTitle {
+  font-size: 1.2em;
+  border-left: 5px solid #0078d4;
+  padding-left: 12px;
+  margin-bottom: 12px;
+  font-weight: bold;
+}
+
+.resultList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.resultList li {
+  background: #fff;
+  padding: 12px 15px;
+  border: 1px solid #e1dfdd;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 0.95em;
+  position: relative;
+}
+
+.liCurrentStation {
+  background-color: #fff9c4 !important;
+  border: 2px solid #fbc02d !important;
+  font-weight: bold;
+}
+
+.currentStationLabel {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #fbc02d;
+  color: #333;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 0.8em;
+}
+
+.tagBadge {
+  background-color: #0078d4;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  margin-right: 10px;
+}
+
+.deliveryText {
+  color: #d83b01;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.jigStation {
+  color: #005a9e;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.jigCode {
+  padding-left: 15px;
+}
+
+.partReady {
+  background-color: #dff6dd;
+  color: #107c10;
+  padding: 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.partWarning {
+  background-color: #fff4ce;
+  color: #84600d;
+  padding: 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-top: 10px;
+}

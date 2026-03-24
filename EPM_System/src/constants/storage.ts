@@ -1,0 +1,11 @@
+/**
+ * LocalStorage 儲存鍵與預設值
+ */
+
+export const STORAGE_KEYS = {
+  PROJECTS: 'EPM_STABLE_PROJECTS_V1',
+  TOOLS: 'EPM_STABLE_TOOLS_V1',
+  PARTS: 'EPM_STABLE_PARTS_V1',
+  STATIONS: 'EPM_STABLE_STATIONS_V1',
+  VIEW_MODE: 'EPM_VIEW_MODE',
+} as const;

@@ -1,0 +1,20 @@
+.dashboardView {
+  padding: 20px;
+}
+
+.dashboardArea {
+  min-height: 200px;
+}
+
+.dashboardContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.emptyMessage {
+  padding: 60px;
+  color: #999;
+  text-align: center;
+  margin: 0;
+}
