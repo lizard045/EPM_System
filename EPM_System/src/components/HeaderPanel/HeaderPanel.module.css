@@ -47,7 +47,7 @@
 .uploadArea {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 

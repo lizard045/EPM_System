@@ -126,6 +126,7 @@ export function HeaderPanel(props: HeaderPanelProps) {
   };
 
   const hasTools = Object.keys(toolDeliveryMap).length > 0;
+  const hasHtml = projects.length > 0;
   const hasParts = Object.keys(partDeliveryMap).length > 0;
   const hasStations = Object.keys(stationProgressMap).length > 0;
 
@@ -162,6 +163,7 @@ export function HeaderPanel(props: HeaderPanelProps) {
           <button type="button" onClick={handleImportHtml}>
             執行匯入
           </button>
+          <div className={styles.statusMsg}>{hasHtml ? '已載入傳票' : ''}</div>
         </div>
         <div className={styles.uploadGroup}>
           <span className={styles.uploadLabel}>2. 工具交期 (Excel)</span>
