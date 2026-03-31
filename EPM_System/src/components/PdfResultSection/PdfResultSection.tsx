@@ -116,16 +116,18 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
           {(consumables ?? []).length > 0 ? (
             consumables.map((d, idx) => {
                 const lotKey = d.code.trim().toUpperCase();
-                const hasLotRow =
-                  lotKey &&
+                const hasEntry =
+                  !!lotKey &&
                   Object.prototype.hasOwnProperty.call(
                     materialLotDeliveryMap,
                     lotKey
                   );
+                const raw = hasEntry ? materialLotDeliveryMap[lotKey] : '';
+                const hasDelivery = !!(raw && String(raw).trim());
+
                 let lotExtra: ReactNode = null;
-                if (hasLotRow) {
-                  const raw = materialLotDeliveryMap[lotKey];
-                  if (raw && String(raw).trim()) {
+                if (lotKey) {
+                  if (hasEntry && hasDelivery) {
                     lotExtra = (
                       <span className={styles.deliveryText}>
                         ({fixDateDisplay(raw)})
@@ -134,7 +136,7 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
                   } else {
                     lotExtra = (
                       <span className={styles.materialLotWarn}>
-                        （採購交期未回覆，請確認）
+                        (採購交期未回覆，請確認)
                       </span>
                     );
                   }
