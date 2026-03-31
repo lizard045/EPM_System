@@ -49,6 +49,77 @@ export function parsePartDeliveryExcel(buffer: ArrayBuffer): Record<string, stri
   return result;
 }
 
+/** 將儲存格轉成採購交期顯示字串（空則回傳空字串） */
+function cellToDeliveryString(cell: unknown): string {
+  if (cell === undefined || cell === null) return '';
+  if (typeof cell === 'number' && !isNaN(cell) && cell > 40000) {
+    const dt = new Date((cell - 25569) * 86400 * 1000);
+    return `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()}`;
+  }
+  const s = String(cell).trim();
+  return s;
+}
+
+/** 需求：第四欄 LOT NO、第十二欄採購交期；範例檔「請購新增缺料表1」中 LOT NO 在 E 欄（第 5 欄）、採購交期在 L 欄（第 12 欄）。 */
+const MATERIAL_LOT_COL_1BASED = 5;
+const MATERIAL_PO_COL_1BASED = 12;
+/** 第 8 欄材料料號（H 欄），與 Traveler 補材 code 比對 */
+const MATERIAL_PART_NO_COL_1BASED = 8;
+
+/**
+ * 解析新原物料異常／補材紀錄 Excel：LOT NO（第 5 欄 E）、採購交期（第 12 欄 L）。
+ * 同列材料料號（第 8 欄）亦寫入同一交期，供與手順書補材編號比對。
+ * 表內有該 LOT／料號但交期空白時，值為空字串（供 UI 顯示警示）。
+ */
+export function parseMaterialLotDeliveryExcel(buffer: ArrayBuffer): Record<string, string> {
+  const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+  const result: Record<string, string> = {};
+
+  const lotIdx = MATERIAL_LOT_COL_1BASED - 1;
+  const dateIdx = MATERIAL_PO_COL_1BASED - 1;
+  const partNoIdx = MATERIAL_PART_NO_COL_1BASED - 1;
+
+  const isInvalidLot = (lot: string) =>
+    !lot || /^NA$/i.test(lot) || lot === 'N/A' || lot === '—' || lot === '-';
+
+  const assignKeys = (delivery: string, lotRaw: string, partNoRaw: unknown) => {
+    if (!isInvalidLot(lotRaw)) {
+      result[lotRaw.toUpperCase()] = delivery;
+    }
+    const part = String(partNoRaw ?? '')
+      .trim()
+      .replace(/\.0+$/, '');
+    if (part && part !== 'NA' && part !== 'N/A') {
+      result[part.toUpperCase()] = delivery;
+    }
+  };
+
+  wb.SheetNames.forEach((sheetName) => {
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json<(string | number)[]>(ws, {
+      header: 1,
+      defval: '',
+    });
+
+    for (let r = 0; r < rows.length; r++) {
+      const row = rows[r] ?? [];
+      if (row.length <= dateIdx) continue;
+
+      const lotRaw = String(row[lotIdx] ?? '').trim();
+      const partNoRaw = row.length > partNoIdx ? row[partNoIdx] ?? '' : '';
+      const delivery = cellToDeliveryString(row[dateIdx]);
+
+      if (isInvalidLot(lotRaw) && !String(partNoRaw).trim()) continue;
+
+      if (/^LOT\s*NO$/i.test(lotRaw)) continue;
+
+      assignKeys(delivery, lotRaw, partNoRaw);
+    }
+  });
+
+  return result;
+}
+
 /** 解析站點進度 Excel */
 export function parseStationExcel(buffer: ArrayBuffer): Record<string, string> {
   const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' });

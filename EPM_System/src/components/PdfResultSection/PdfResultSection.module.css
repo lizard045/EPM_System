@@ -63,6 +63,12 @@
   margin-left: 8px;
 }
 
+.materialLotWarn {
+  color: #a4262c;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
 .jigStation {
   color: #005a9e;
   font-weight: bold;

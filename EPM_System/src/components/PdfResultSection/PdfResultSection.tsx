@@ -2,6 +2,7 @@
  * Traveler 手順書解析結果區塊
  */
 
+import type { ReactNode } from 'react';
 import { fixDateDisplay } from '../../utils';
 import { findMatchingPdfStation } from '../../utils';
 import { useEPM } from '../../context/EPMContext';
@@ -13,7 +14,12 @@ interface PdfResultSectionProps {
 }
 
 export function PdfResultSection({ project }: PdfResultSectionProps) {
-  const { toolDeliveryMap, partDeliveryMap, stationProgressMap } = useEPM();
+  const {
+    toolDeliveryMap,
+    partDeliveryMap,
+    stationProgressMap,
+    materialLotDeliveryMap,
+  } = useEPM();
 
   if (!project.pdfParsed || !project.pdfData) return null;
 
@@ -108,11 +114,38 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
         <div className={styles.resultTitle}>補材列表</div>
         <ul className={styles.resultList}>
           {(consumables ?? []).length > 0 ? (
-            consumables.map((d, idx) => (
-                <li key={idx}>
-                  {d.name}：<b>{d.code}</b>
-                </li>
-              ))
+            consumables.map((d, idx) => {
+                const lotKey = d.code.trim().toUpperCase();
+                const hasLotRow =
+                  lotKey &&
+                  Object.prototype.hasOwnProperty.call(
+                    materialLotDeliveryMap,
+                    lotKey
+                  );
+                let lotExtra: ReactNode = null;
+                if (hasLotRow) {
+                  const raw = materialLotDeliveryMap[lotKey];
+                  if (raw && String(raw).trim()) {
+                    lotExtra = (
+                      <span className={styles.deliveryText}>
+                        ({fixDateDisplay(raw)})
+                      </span>
+                    );
+                  } else {
+                    lotExtra = (
+                      <span className={styles.materialLotWarn}>
+                        （採購交期未回覆，請確認）
+                      </span>
+                    );
+                  }
+                }
+                return (
+                  <li key={idx}>
+                    {d.name}：<b>{d.code}</b>
+                    {lotExtra}
+                  </li>
+                );
+              })
           ) : (
             <li>無資料</li>
           )}

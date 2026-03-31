@@ -14,6 +14,9 @@ export interface EPMStore {
   setPartDeliveryMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   stationProgressMap: Record<string, string>;
   setStationProgressMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  /** LOT NO → 採購交期（空字串表示表內有該 LOT 但無交期） */
+  materialLotDeliveryMap: Record<string, string>;
+  setMaterialLotDeliveryMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   currentProjectId: number | null;

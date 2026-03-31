@@ -33,6 +33,9 @@ export function useEPMStore() {
   const [stationProgressMap, setStationProgressMap] = useState<Record<string, string>>(() =>
     loadFromStorage(STORAGE_KEYS.STATIONS, {})
   );
+  const [materialLotDeliveryMap, setMaterialLotDeliveryMap] = useState<Record<string, string>>(
+    () => loadFromStorage(STORAGE_KEYS.MATERIAL_LOT, {})
+  );
   const [viewMode, setViewMode] = useState<ViewMode>(
     () => (localStorage.getItem(STORAGE_KEYS.VIEW_MODE) as ViewMode) || 'card'
   );
@@ -56,6 +59,10 @@ export function useEPMStore() {
   }, [stationProgressMap]);
 
   useEffect(() => {
+    saveToStorage(STORAGE_KEYS.MATERIAL_LOT, materialLotDeliveryMap);
+  }, [materialLotDeliveryMap]);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
   }, [viewMode]);
 
@@ -76,6 +83,7 @@ export function useEPMStore() {
     setToolDeliveryMap({});
     setPartDeliveryMap({});
     setStationProgressMap({});
+    setMaterialLotDeliveryMap({});
     setCurrentProjectId(null);
   }, []);
 
@@ -88,6 +96,8 @@ export function useEPMStore() {
     setPartDeliveryMap,
     stationProgressMap,
     setStationProgressMap,
+    materialLotDeliveryMap,
+    setMaterialLotDeliveryMap,
     viewMode,
     setViewMode,
     currentProjectId,
