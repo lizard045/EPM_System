@@ -63,8 +63,14 @@
   margin-left: 8px;
 }
 
+.jigNoDelivery {
+  color: #605e5c;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
 .materialLotWarn {
-  color: #a4262c;
+  color: #605e5c;
   font-weight: bold;
   margin-left: 8px;
 }

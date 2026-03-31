@@ -84,16 +84,31 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
                       .trim()
                       .split('(')[0]
                       .trim();
-                    let dev: React.ReactNode = null;
+                    let matchedKey: string | null = null;
                     for (const k in toolDeliveryMap) {
                       if (k === core || k.startsWith(core + '-')) {
-                        dev = (
-                          <span className={styles.deliveryText}>
-                            ({fixDateDisplay(toolDeliveryMap[k])})
-                          </span>
-                        );
+                        matchedKey = k;
                         break;
                       }
+                    }
+                    let dev: ReactNode;
+                    if (matchedKey != null) {
+                      const val = toolDeliveryMap[matchedKey];
+                      if (val && String(val).trim()) {
+                        dev = (
+                          <span className={styles.deliveryText}>
+                            ({fixDateDisplay(val)})
+                          </span>
+                        );
+                      } else {
+                        dev = (
+                          <span className={styles.jigNoDelivery}>(尚無交期)</span>
+                        );
+                      }
+                    } else {
+                      dev = (
+                        <span className={styles.jigNoDelivery}>(尚無交期)</span>
+                      );
                     }
                     return (
                       <div key={i} className={styles.jigCode}>
@@ -136,7 +151,7 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
                   } else {
                     lotExtra = (
                       <span className={styles.materialLotWarn}>
-                        (採購交期未回覆，請確認)
+                        (尚無採購交期)
                       </span>
                     );
                   }
