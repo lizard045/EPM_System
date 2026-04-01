@@ -1,0 +1,147 @@
+.searchFilterBar {
+  background: #ffffff;
+  padding: 16px 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+}
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.filterIconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #4b5563;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.filterIconBtn:hover {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #374151;
+  letter-spacing: 0.02em;
+}
+
+.segmented {
+  display: inline-flex;
+  align-items: stretch;
+  padding: 4px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.segmentBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.segmentBtn:hover {
+  color: #374151;
+}
+
+.segmentBtn.active {
+  background: #ffffff;
+  color: #005a9e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.segmentBtn svg {
+  flex-shrink: 0;
+}
+
+.searchWrap {
+  position: relative;
+  width: 100%;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 14px 12px 44px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  color: #1f2937;
+  background: #f9fafb;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.searchInput::placeholder {
+  color: #9ca3af;
+}
+
+.searchInput:hover {
+  background: #f3f4f6;
+}
+
+.searchInput:focus {
+  background: #ffffff;
+  border-color: #005a9e;
+  box-shadow: 0 0 0 3px rgba(0, 90, 158, 0.12);
+}
+
+@media (max-width: 600px) {
+  .topRow {
+    flex-wrap: wrap;
+  }
+
+  .segmented {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .segmentBtn {
+    flex: 1;
+    justify-content: center;
+  }
+}

@@ -29,8 +29,6 @@ export function HeaderPanel(props: HeaderPanelProps) {
     setStationProgressMap,
     materialLotDeliveryMap,
     setMaterialLotDeliveryMap,
-    viewMode,
-    setViewMode,
     toolDeliveryMap,
     partDeliveryMap,
     stationProgressMap,
@@ -159,22 +157,6 @@ export function HeaderPanel(props: HeaderPanelProps) {
     <div className={styles.headerPanel}>
       <div className={styles.headerTop}>
         <h2 className={styles.title}>NPI 專案戰情儀表板 (V38.0 雙模式版)</h2>
-        <div className={styles.viewToggle}>
-          <button
-            type="button"
-            className={`${styles.btnOutline} ${viewMode === 'card' ? styles.active : ''}`}
-            onClick={() => setViewMode('card')}
-          >
-            卡片模式
-          </button>
-          <button
-            type="button"
-            className={`${styles.btnOutline} ${viewMode === 'table' ? styles.active : ''}`}
-            onClick={() => setViewMode('table')}
-          >
-            列表模式
-          </button>
-        </div>
       </div>
       <div className={styles.uploadPanelWrap}>
         <div className={styles.uploadArea}>

@@ -19,31 +19,6 @@
   font-size: 1.25rem;
 }
 
-.viewToggle {
-  display: flex;
-  gap: 8px;
-}
-
-.btnOutline {
-  background-color: transparent;
-  color: #005a9e;
-  border: 2px solid #005a9e;
-  padding: 8px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-  transition: 0.2s;
-}
-
-.btnOutline:hover {
-  background-color: rgba(0, 90, 158, 0.1);
-}
-
-.btnOutline.active {
-  background-color: #005a9e;
-  color: white;
-}
-
 .uploadPanelWrap {
   position: relative;
   padding-bottom: 8px;
