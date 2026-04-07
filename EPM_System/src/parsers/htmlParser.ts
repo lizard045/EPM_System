@@ -42,5 +42,9 @@ export function parseVoucherHtml(html: string): Omit<Project, 'id'> | null {
     pdfParsed: false,
     pdfData: null,
     isArchived: false,
+    createdAt: new Date().toISOString(),
+    priority: '一般',
+    epmName: '',
+    customer: '',
   };
 }

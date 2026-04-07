@@ -74,7 +74,17 @@ export function useEPMStore() {
 
   const addProject = useCallback((project: Omit<Project, 'id'>) => {
     const id = Date.now() + Math.random();
-    setProjects((prev) => [...prev, { ...project, id }]);
+    setProjects((prev) => [
+      ...prev,
+      {
+        ...project,
+        id,
+        createdAt: project.createdAt ?? new Date().toISOString(),
+        priority: project.priority ?? '一般',
+        epmName: project.epmName ?? '',
+        customer: project.customer ?? '',
+      },
+    ]);
   }, []);
 
   const clearAllData = useCallback(() => {
