@@ -5,6 +5,41 @@
 import type { StationItem } from '../types';
 
 /**
+ * 匯入表與傳票工單比對用：隱藏字元、全形字元 NFKC、大寫（與 parseStationExcel 鍵一致）。
+ */
+export function normalizeWorkOrderKey(workOrder: string | undefined): string {
+  return String(workOrder ?? '')
+    .replace(/[\uFEFF\u200B-\u200D\u2060]/g, '')
+    .normalize('NFKC')
+    .trim()
+    .toUpperCase();
+}
+
+/**
+ * 以工單查詢匯入表；相容大小寫、全形字元、Excel 數字格式。
+ */
+export function lookupWorkOrderMap<T>(
+  map: Record<string, T>,
+  workOrder: string | undefined
+): T | undefined {
+  const raw = String(workOrder ?? '').trim();
+  if (!raw) return undefined;
+  if (Object.prototype.hasOwnProperty.call(map, raw)) return map[raw];
+  const up = raw.toUpperCase();
+  if (Object.prototype.hasOwnProperty.call(map, up)) return map[up];
+  const low = raw.toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(map, low)) return map[low];
+  const n = Number(raw.replace(/,/g, ''));
+  if (!isNaN(n) && Number.isFinite(n)) {
+    const asInt = String(Math.trunc(n));
+    if (Object.prototype.hasOwnProperty.call(map, asInt)) return map[asInt];
+  }
+  const norm = normalizeWorkOrderKey(workOrder);
+  if (norm && Object.prototype.hasOwnProperty.call(map, norm)) return map[norm];
+  return undefined;
+}
+
+/**
  * 從 WIP 站點字串找出對應的 PDF 站點
  */
 export function findMatchingPdfStation(
@@ -33,28 +68,55 @@ export function findMatchingPdfStation(
   return null;
 }
 
+/** WIP：先「在站製程名」再「工程站」，與手順書站序／生產進度條一致 */
+export function matchWipToTravelerStation(
+  wip: { atStationProcessName?: string; engineeringStation?: string },
+  pdfStations: StationItem[] | undefined
+): StationItem | null {
+  if (!pdfStations?.length) return null;
+  const processName = String(wip.atStationProcessName ?? '').trim();
+  const eng = String(wip.engineeringStation ?? '').trim();
+  if (processName) {
+    const m = findMatchingPdfStation(processName, pdfStations);
+    if (m) return m;
+  }
+  if (eng) {
+    return findMatchingPdfStation(eng, pdfStations);
+  }
+  return null;
+}
+
+function formatStationItemDisplay(matched: StationItem): string {
+  const codePart = matched.code ?? '';
+  const namePart = matched.name ?? '';
+  return codePart ? (namePart ? `${codePart} ${namePart}` : codePart) : namePart;
+}
+
 /**
- * 取得目前站點顯示文字
+ * 取得目前站點顯示文字。
+ * 若有 WIP 快照，優先依「在站製程名／工程站」對手順書（與生產進度相同）。
  */
 export function getCurrentStationDisplay(
   workOrder: string | undefined,
   pdfStations: StationItem[] | undefined,
-  stationProgressMap: Record<string, string>
+  stationProgressMap: Record<string, string>,
+  wipSnapshot?: { atStationProcessName?: string; engineeringStation?: string } | null
 ): string {
   if (!workOrder || !String(workOrder).trim()) return '';
   if (Object.keys(stationProgressMap).length === 0) return '';
 
-  const wo = String(workOrder).trim();
-  const wipStation = stationProgressMap[wo];
+  const wipStation = lookupWorkOrderMap(stationProgressMap, workOrder);
 
   if (wipStation === undefined || wipStation === '') return '工單錯誤';
 
   if (pdfStations?.length) {
+    if (wipSnapshot) {
+      const byWip = matchWipToTravelerStation(wipSnapshot, pdfStations);
+      if (byWip) return formatStationItemDisplay(byWip);
+    }
     const matched = findMatchingPdfStation(wipStation, pdfStations);
     if (matched) {
-      const codePart = matched.code ?? '';
-      const namePart = matched.name ?? '';
-      return codePart ? (namePart ? `${codePart} ${namePart}` : codePart) : namePart;
+      return formatStationItemDisplay(matched);
     }
     return '工單錯誤';
   }

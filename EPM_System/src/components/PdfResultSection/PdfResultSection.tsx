@@ -3,8 +3,12 @@
  */
 
 import type { ReactNode } from 'react';
-import { fixDateDisplay } from '../../utils';
-import { findMatchingPdfStation } from '../../utils';
+import {
+  findMatchingPdfStation,
+  fixDateDisplay,
+  lookupWorkOrderMap,
+  matchWipToTravelerStation,
+} from '../../utils';
 import { useEPM } from '../../context/EPMContext';
 import type { Project } from '../../types';
 import styles from './PdfResultSection.module.css';
@@ -19,19 +23,20 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
     partDeliveryMap,
     stationProgressMap,
     materialLotDeliveryMap,
+    wipByWorkOrder,
   } = useEPM();
 
   if (!project.pdfParsed || !project.pdfData) return null;
 
   const { parts, jigs, consumables, stations } = project.pdfData;
   const prog = partDeliveryMap[project.formNo?.toUpperCase() ?? ''] ?? '';
-  const wipStation = project.workOrder?.trim()
-    ? stationProgressMap[project.workOrder.trim()]
-    : null;
-  const matchedPdfStation =
-    wipStation && stations
-      ? findMatchingPdfStation(wipStation, stations)
-      : null;
+  const wipStation = lookupWorkOrderMap(stationProgressMap, project.workOrder) ?? null;
+  const wipSnap = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
+  let matchedPdfStation =
+    wipSnap && stations?.length ? matchWipToTravelerStation(wipSnap, stations) : null;
+  if (!matchedPdfStation && wipStation && stations?.length) {
+    matchedPdfStation = findMatchingPdfStation(wipStation, stations);
+  }
 
   const partReady = prog.includes('零件備妥');
 

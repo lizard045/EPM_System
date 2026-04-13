@@ -4,7 +4,7 @@
 
 import { useRef, useState } from 'react';
 import { useEPM } from '../../context/EPMContext';
-import { getCurrentStationDisplay } from '../../utils';
+import { getCurrentStationDisplay, lookupWorkOrderMap } from '../../utils';
 import { parseTravelerExcel } from '../../parsers';
 import { PdfResultSection } from '../../components/PdfResultSection';
 import styles from './DetailView.module.css';
@@ -15,7 +15,7 @@ interface DetailViewProps {
 }
 
 export function DetailView({ projectId, onClose }: DetailViewProps) {
-  const { projects, setProjects, updateProject, stationProgressMap } =
+  const { projects, setProjects, updateProject, stationProgressMap, wipByWorkOrder } =
     useEPM();
 
   const travelerInputRef = useRef<HTMLInputElement>(null);
@@ -24,10 +24,12 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
   const project = projects.find((p) => p.id === projectId);
   if (!project) return null;
 
+  const wipSnap = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
   const currentStation = getCurrentStationDisplay(
     project.workOrder,
     project.pdfData?.stations,
-    stationProgressMap
+    stationProgressMap,
+    wipSnap
   );
 
   const handleArchive = () => {

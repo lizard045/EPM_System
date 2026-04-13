@@ -2,10 +2,16 @@
  * 專案卡片元件
  */
 
-import { getCurrentStationDisplay } from '../../utils';
+import {
+  buildProductionProgressFromEngineeringStationOnly,
+  buildProductionProgressViewModel,
+  getCurrentStationDisplay,
+  lookupWorkOrderMap,
+} from '../../utils';
 import { useProjectAlerts } from '../../hooks/useProjectAlerts';
 import { useEPM } from '../../context/EPMContext';
 import type { Project } from '../../types';
+import { ProductionProgressSection } from './ProductionProgressSection';
 import styles from './ProjectCard.module.css';
 
 interface ProjectCardProps {
@@ -14,13 +20,22 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, onClick }: ProjectCardProps) {
-  const { toolDeliveryMap, partDeliveryMap, stationProgressMap } = useEPM();
+  const { toolDeliveryMap, partDeliveryMap, stationProgressMap, wipByWorkOrder } = useEPM();
   const alerts = useProjectAlerts(project, toolDeliveryMap, partDeliveryMap);
+  const wipSnap = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
   const currentStationName = getCurrentStationDisplay(
     project.workOrder,
     project.pdfData?.stations,
-    stationProgressMap
+    stationProgressMap,
+    wipSnap
   );
+  let progressModel = wipSnap ? buildProductionProgressViewModel(project, wipSnap) : null;
+  if (!progressModel) {
+    const engOnly = lookupWorkOrderMap(stationProgressMap, project.workOrder);
+    if (engOnly) {
+      progressModel = buildProductionProgressFromEngineeringStationOnly(project, engOnly);
+    }
+  }
 
   return (
     <div className={styles.card} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
@@ -54,6 +69,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
         <span className={styles.fieldLabel}>交期</span>
         <span className={styles.fieldValue}>{project.deadline || '未定'}</span>
       </div>
+      {progressModel && <ProductionProgressSection model={progressModel} />}
       {alerts.toolingIncomplete && (
         <div className={styles.cardWarning}>模治具尚未備齊</div>
       )}

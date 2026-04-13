@@ -2,7 +2,7 @@
  * 專案列表表格
  */
 
-import { getCurrentStationDisplay } from '../../utils';
+import { getCurrentStationDisplay, lookupWorkOrderMap } from '../../utils';
 import { useProjectAlerts } from '../../hooks/useProjectAlerts';
 import { useEPM } from '../../context/EPMContext';
 import type { Project } from '../../types';
@@ -45,14 +45,16 @@ function ProjectTableRow({
   project: Project;
   onRowClick: (p: Project) => void;
 }) {
-  const { toolDeliveryMap, partDeliveryMap, stationProgressMap } = useEPM();
+  const { toolDeliveryMap, partDeliveryMap, stationProgressMap, wipByWorkOrder } = useEPM();
   const alerts = useProjectAlerts(project, toolDeliveryMap, partDeliveryMap);
+  const wipSnap = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
 
   const currentStationName =
     getCurrentStationDisplay(
       project.workOrder,
       project.pdfData?.stations,
-      stationProgressMap
+      stationProgressMap,
+      wipSnap
     ) || '-';
 
   let alertTags: React.ReactNode;

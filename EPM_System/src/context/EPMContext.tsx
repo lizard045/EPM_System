@@ -3,6 +3,7 @@
  */
 
 import { createContext, useContext } from 'react';
+import type { WipSnapshot } from '../parsers/excelParser';
 import type { Project, ViewMode } from '../types';
 
 export interface EPMStore {
@@ -14,6 +15,8 @@ export interface EPMStore {
   setPartDeliveryMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   stationProgressMap: Record<string, string>;
   setStationProgressMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  wipByWorkOrder: Record<string, WipSnapshot>;
+  setWipByWorkOrder: React.Dispatch<React.SetStateAction<Record<string, WipSnapshot>>>;
   /** LOT NO → 採購交期（空字串表示表內有該 LOT 但無交期） */
   materialLotDeliveryMap: Record<string, string>;
   setMaterialLotDeliveryMap: React.Dispatch<React.SetStateAction<Record<string, string>>>;

@@ -4,5 +4,6 @@ export {
   parsePartDeliveryExcel,
   parseStationExcel,
   parseMaterialLotDeliveryExcel,
+  mergeWipByWorkOrderInto,
 } from './excelParser';
 export { parseTravelerExcel } from './travelerParser';

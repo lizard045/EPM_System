@@ -10,6 +10,7 @@ import {
   parsePartDeliveryExcel,
   parseStationExcel,
   parseMaterialLotDeliveryExcel,
+  mergeWipByWorkOrderInto,
 } from '../../parsers';
 import styles from './HeaderPanel.module.css';
 
@@ -27,6 +28,7 @@ export function HeaderPanel(props: HeaderPanelProps) {
     setToolDeliveryMap,
     setPartDeliveryMap,
     setStationProgressMap,
+    setWipByWorkOrder,
     materialLotDeliveryMap,
     setMaterialLotDeliveryMap,
     toolDeliveryMap,
@@ -117,8 +119,9 @@ export function HeaderPanel(props: HeaderPanelProps) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const buffer = e.target?.result as ArrayBuffer;
-      const map = parseStationExcel(buffer);
-      setStationProgressMap((prev) => ({ ...prev, ...map }));
+      const { stationByWorkOrder, wipByWorkOrder } = parseStationExcel(buffer);
+      setStationProgressMap((prev) => ({ ...prev, ...stationByWorkOrder }));
+      setWipByWorkOrder((prev) => mergeWipByWorkOrderInto(prev, wipByWorkOrder));
       window.alert('成功匯入站點進度');
       props.onImportStations?.();
     };
