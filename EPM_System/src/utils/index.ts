@@ -13,3 +13,10 @@ export {
   ipqcToStepperIndex,
 } from './productionProgressUtils';
 export type { ProductionProgressViewModel, ProductionStepperIndex } from './productionProgressUtils';
+export { computePropertyManagementProgress } from './propertyManagementProgressUtils';
+export type {
+  PropertyManagementProgressModel,
+  PropertyPendingItem,
+  PropertyPendingKind,
+  PropertyProgressCategory,
+} from './propertyManagementProgressUtils';
