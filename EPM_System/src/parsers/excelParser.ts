@@ -142,6 +142,30 @@ export interface WipSnapshot {
   completedStepCount: string;
   atStationStep: string;
   ipqcStatus: string;
+  /** 第 4 欄 料號（與傳票品目比對，工單未填時仍可對到 WIP） */
+  partNo: string;
+  /** 第 5 欄 目標量（投料目標量），出貨安全率橫軸右端 */
+  targetFeedQty: string;
+  /** 第 6 欄 張數（補投 pnl 換算用） */
+  sheetCount: string;
+  /** 第 21 欄 Pcs（目前在站數量） */
+  wipPcs: string;
+}
+
+/** 舊版 localStorage 可能缺少出貨安全率欄位 */
+export function normalizeWipSnapshot(raw: Partial<WipSnapshot> | undefined): WipSnapshot {
+  return {
+    engineeringStation: String(raw?.engineeringStation ?? '').trim(),
+    hoursAtStationDisplay: String(raw?.hoursAtStationDisplay ?? '').trim(),
+    atStationProcessName: String(raw?.atStationProcessName ?? '').trim(),
+    completedStepCount: String(raw?.completedStepCount ?? '').trim(),
+    atStationStep: String(raw?.atStationStep ?? '').trim(),
+    ipqcStatus: String(raw?.ipqcStatus ?? '').trim(),
+    partNo: String(raw?.partNo ?? '').trim(),
+    targetFeedQty: String(raw?.targetFeedQty ?? '').trim(),
+    sheetCount: String(raw?.sheetCount ?? '').trim(),
+    wipPcs: String(raw?.wipPcs ?? '').trim(),
+  };
 }
 
 export interface StationExcelImport {
@@ -154,6 +178,15 @@ const WIP_IPQC_COL_0 = 8;
 
 /** 第 17 欄（1-based）：在站時數(hr)；若表頭名稱不符則回退此索引 */
 const WIP_HOURS_AT_STATION_COL_0 = 16;
+
+/** 第 4 欄（1-based）：料號 */
+const WIP_PART_NO_COL_0 = 3;
+/** 第 5 欄（1-based）：目標量 */
+const WIP_TARGET_FEED_COL_0 = 4;
+/** 第 6 欄（1-based）：張數 */
+const WIP_SHEET_COUNT_COL_0 = 5;
+/** 第 21 欄（1-based）：Pcs */
+const WIP_PCS_COL_0 = 20;
 
 function formatHoursAtStationCell(v: unknown): string {
   if (v === '' || v === undefined || v === null) return '';
@@ -213,6 +246,22 @@ function readWipIpqcCell(row: unknown[], headerIndex: Record<string, number>): s
   ).trim();
 }
 
+/** 僅接受純數量字串，避免「2D」等工作表欄位錯位把 IPQC 文字寫進目標量／張數 */
+function looksLikeNonNegativeQtyCell(s: string): boolean {
+  const t = String(s ?? '')
+    .trim()
+    .replace(/,/g, '');
+  if (!t) return false;
+  return /^\d+(?:\.\d+)?$/.test(t);
+}
+
+function pickQtyMerge(existing: string, incoming: string): string {
+  const bt = String(incoming ?? '').trim();
+  if (!bt) return existing;
+  if (!looksLikeNonNegativeQtyCell(bt)) return existing;
+  return bt;
+}
+
 function mergeWipSnapshots(exists: WipSnapshot, incoming: WipSnapshot): WipSnapshot {
   const pick = (a: string, b: string) => {
     const bt = String(b ?? '').trim();
@@ -225,6 +274,10 @@ function mergeWipSnapshots(exists: WipSnapshot, incoming: WipSnapshot): WipSnaps
     completedStepCount: pick(exists.completedStepCount, incoming.completedStepCount),
     atStationStep: pick(exists.atStationStep, incoming.atStationStep),
     ipqcStatus: pick(exists.ipqcStatus, incoming.ipqcStatus),
+    partNo: pick(exists.partNo, incoming.partNo),
+    targetFeedQty: pickQtyMerge(exists.targetFeedQty, incoming.targetFeedQty),
+    sheetCount: pickQtyMerge(exists.sheetCount, incoming.sheetCount),
+    wipPcs: pickQtyMerge(exists.wipPcs, incoming.wipPcs),
   };
 }
 
@@ -258,6 +311,11 @@ export function parseStationExcel(buffer: ArrayBuffer): StationExcelImport {
     if (!rows.length) return;
 
     const headerIndex = headerRowToIndex(rows[0] ?? []);
+    /** 「Data」主表才有目標量／張數等；「2D」等欄位順序不同，勿寫入 WIP 快照以免覆蓋正確數值 */
+    const canParseWipSnapshot =
+      headerIndex['目標量'] !== undefined ||
+      headerIndex['投料目標量'] !== undefined ||
+      headerIndex['張數'] !== undefined;
 
     for (let r = 1; r < rows.length; r++) {
       const row = rows[r] ?? [];
@@ -272,6 +330,8 @@ export function parseStationExcel(buffer: ArrayBuffer): StationExcelImport {
       if (engStation) {
         stationByWorkOrder[wo] = engStation;
       }
+
+      if (!canParseWipSnapshot) continue;
 
       const hoursRaw = pickCol(
         row,
@@ -293,6 +353,19 @@ export function parseStationExcel(buffer: ArrayBuffer): StationExcelImport {
           pickCol(row, headerIndex, ['在站步驟'], 13) ?? ''
         ).trim(),
         ipqcStatus: readWipIpqcCell(row, headerIndex),
+        partNo: String(
+          pickCol(row, headerIndex, ['料號', '品目', '品目番號'], WIP_PART_NO_COL_0) ?? ''
+        ).trim(),
+        targetFeedQty: String(
+          pickCol(row, headerIndex, ['目標量', '投料目標量'], WIP_TARGET_FEED_COL_0) ?? ''
+        ).trim(),
+        sheetCount: String(
+          pickCol(row, headerIndex, ['張數'], WIP_SHEET_COUNT_COL_0) ?? ''
+        ).trim(),
+        wipPcs: String(
+          pickCol(row, headerIndex, ['Pcs', 'PCS', '目前Pcs', '目前 PCS'], WIP_PCS_COL_0) ??
+            ''
+        ).trim(),
       };
 
       const prevSnap = wipByWorkOrder[wo];

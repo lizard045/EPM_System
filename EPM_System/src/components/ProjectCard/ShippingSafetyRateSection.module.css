@@ -1,0 +1,165 @@
+.wrap {
+  margin-top: 12px;
+  margin-bottom: 4px;
+  background: #f3f2f1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e1dfdd;
+}
+
+.head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: #323130;
+  text-align: left;
+}
+
+.head:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.headTitle {
+  font-weight: 700;
+  font-size: 0.9em;
+}
+
+.chevron {
+  display: inline-block;
+  font-size: 0.75em;
+  color: #605e5c;
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.body {
+  padding: 0 12px 12px;
+}
+
+.currentPcs {
+  font-size: 1.35em;
+  font-weight: 700;
+  color: #c239b3;
+  margin-bottom: 8px;
+}
+
+.barTrack {
+  position: relative;
+  height: 10px;
+  border-radius: 5px;
+  background: #e1dfdd;
+  overflow: visible;
+  margin-bottom: 22px;
+}
+
+.barFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #d13438, #c239b3);
+  border-radius: 5px 0 0 5px;
+  transition: width 0.25s ease;
+  max-width: 100%;
+}
+
+.tick {
+  position: absolute;
+  top: 100%;
+  margin-top: 4px;
+  transform: translateX(-50%);
+  font-size: 0.72em;
+  color: #605e5c;
+  white-space: nowrap;
+}
+
+.tickStrong {
+  font-weight: 700;
+  color: #323130;
+}
+
+.tickOrigin {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 4px;
+  font-size: 0.72em;
+  color: #605e5c;
+}
+
+.demandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.demandLabel {
+  font-size: 0.88em;
+  color: #605e5c;
+}
+
+.demandValue {
+  font-size: 1.15em;
+  font-weight: 700;
+  color: #c239b3;
+}
+
+.warnBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #fde7f3;
+  color: #a4262c;
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+.warnIcon {
+  flex-shrink: 0;
+  font-size: 0.95em;
+}
+
+.hintBox {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e1dfdd;
+  padding: 10px 12px;
+}
+
+.hintTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82em;
+  font-weight: 700;
+  color: #323130;
+  margin-bottom: 6px;
+}
+
+.hintBullets {
+  margin: 0;
+  padding-left: 1.1em;
+  font-size: 0.82em;
+  color: #323130;
+  line-height: 1.45;
+}
+
+.muted {
+  color: #8a8886;
+  font-size: 0.85em;
+}

@@ -6,6 +6,7 @@ export {
   matchWipToTravelerStation,
   normalizeWorkOrderKey,
 } from './stationUtils';
+export { resolveWipSnapshot } from './wipLookupUtils';
 export {
   buildProductionProgressFromEngineeringStationOnly,
   buildProductionProgressViewModel,
@@ -20,3 +21,5 @@ export type {
   PropertyPendingKind,
   PropertyProgressCategory,
 } from './propertyManagementProgressUtils';
+export { buildShippingSafetyRateViewModel } from './shippingSafetyRateUtils';
+export type { ShippingSafetyRateViewModel } from './shippingSafetyRateUtils';

@@ -8,6 +8,7 @@ import {
   fixDateDisplay,
   lookupWorkOrderMap,
   matchWipToTravelerStation,
+  resolveWipSnapshot,
 } from '../../utils';
 import { useEPM } from '../../context/EPMContext';
 import type { Project } from '../../types';
@@ -30,8 +31,11 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
 
   const { parts, jigs, consumables, stations } = project.pdfData;
   const prog = partDeliveryMap[project.formNo?.toUpperCase() ?? ''] ?? '';
-  const wipStation = lookupWorkOrderMap(stationProgressMap, project.workOrder) ?? null;
-  const wipSnap = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
+  const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
+  let wipStation = lookupWorkOrderMap(stationProgressMap, project.workOrder) ?? null;
+  if (!wipStation?.trim() && wipSnap?.engineeringStation?.trim()) {
+    wipStation = String(wipSnap.engineeringStation).trim();
+  }
   let matchedPdfStation =
     wipSnap && stations?.length ? matchWipToTravelerStation(wipSnap, stations) : null;
   if (!matchedPdfStation && wipStation && stations?.length) {

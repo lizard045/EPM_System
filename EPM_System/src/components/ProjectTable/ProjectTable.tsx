@@ -2,7 +2,7 @@
  * 專案列表表格
  */
 
-import { getCurrentStationDisplay, lookupWorkOrderMap } from '../../utils';
+import { getCurrentStationDisplay, resolveWipSnapshot } from '../../utils';
 import { useProjectAlerts } from '../../hooks/useProjectAlerts';
 import { useEPM } from '../../context/EPMContext';
 import type { Project } from '../../types';
@@ -47,7 +47,7 @@ function ProjectTableRow({
 }) {
   const { toolDeliveryMap, partDeliveryMap, stationProgressMap, wipByWorkOrder } = useEPM();
   const alerts = useProjectAlerts(project, toolDeliveryMap, partDeliveryMap);
-  const wipSnap = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
+  const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
 
   const currentStationName =
     getCurrentStationDisplay(

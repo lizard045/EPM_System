@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { STORAGE_KEYS } from '../constants/storage';
-import type { WipSnapshot } from '../parsers/excelParser';
+import { normalizeWipSnapshot, type WipSnapshot } from '../parsers/excelParser';
 import type { Project, ViewMode } from '../types';
 
 /** 還原舊版誤把 parseStationExcel 整包 merge 進 STATIONS 的資料 */
@@ -64,7 +64,12 @@ export function useEPMStore() {
   const [wipByWorkOrder, setWipByWorkOrder] = useState<Record<string, WipSnapshot>>(() => {
     const split = splitPersistedStations(loadFromStorage(STORAGE_KEYS.STATIONS, {}));
     const fileWip = loadFromStorage<Record<string, WipSnapshot>>(STORAGE_KEYS.WIP_SNAPSHOTS, {});
-    return { ...split.embeddedWip, ...fileWip };
+    const merged = { ...split.embeddedWip, ...fileWip };
+    const out: Record<string, WipSnapshot> = {};
+    for (const [wo, snap] of Object.entries(merged)) {
+      out[wo] = normalizeWipSnapshot(snap);
+    }
+    return out;
   });
   const [materialLotDeliveryMap, setMaterialLotDeliveryMap] = useState<Record<string, string>>(
     () => loadFromStorage(STORAGE_KEYS.MATERIAL_LOT, {})

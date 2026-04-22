@@ -4,7 +4,7 @@
 
 import { useRef, useState } from 'react';
 import { useEPM } from '../../context/EPMContext';
-import { getCurrentStationDisplay, lookupWorkOrderMap } from '../../utils';
+import { getCurrentStationDisplay, resolveWipSnapshot } from '../../utils';
 import { parseTravelerExcel } from '../../parsers';
 import { PdfResultSection } from '../../components/PdfResultSection';
 import styles from './DetailView.module.css';
@@ -24,7 +24,7 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
   const project = projects.find((p) => p.id === projectId);
   if (!project) return null;
 
-  const wipSnap = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
+  const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
   const currentStation = getCurrentStationDisplay(
     project.workOrder,
     project.pdfData?.stations,

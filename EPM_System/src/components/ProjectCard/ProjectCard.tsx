@@ -5,15 +5,18 @@
 import {
   buildProductionProgressFromEngineeringStationOnly,
   buildProductionProgressViewModel,
+  buildShippingSafetyRateViewModel,
   computePropertyManagementProgress,
   getCurrentStationDisplay,
   lookupWorkOrderMap,
+  resolveWipSnapshot,
 } from '../../utils';
 import { useProjectAlerts } from '../../hooks/useProjectAlerts';
 import { useEPM } from '../../context/EPMContext';
 import type { Project } from '../../types';
 import { ProductionProgressSection } from './ProductionProgressSection';
 import { PropertyManagementProgressSection } from './PropertyManagementProgressSection';
+import { ShippingSafetyRateSection } from './ShippingSafetyRateSection';
 import styles from './ProjectCard.module.css';
 
 interface ProjectCardProps {
@@ -30,7 +33,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
     wipByWorkOrder,
   } = useEPM();
   const alerts = useProjectAlerts(project, toolDeliveryMap, partDeliveryMap);
-  const wipSnap = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
+  const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
   const currentStationName = getCurrentStationDisplay(
     project.workOrder,
     project.pdfData?.stations,
@@ -51,6 +54,8 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
     toolDeliveryMap,
     materialLotDeliveryMap
   );
+
+  const shippingSafetyModel = buildShippingSafetyRateViewModel(project, wipSnap);
 
   return (
     <div className={styles.card} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
@@ -85,6 +90,9 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
         <span className={styles.fieldValue}>{project.deadline || '未定'}</span>
       </div>
       {progressModel && <ProductionProgressSection model={progressModel} />}
+      {shippingSafetyModel.canRender && (
+        <ShippingSafetyRateSection model={shippingSafetyModel} />
+      )}
       <PropertyManagementProgressSection
         model={propertyProgressModel}
         pdfParsed={project.pdfParsed}

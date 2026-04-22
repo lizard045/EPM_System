@@ -95,6 +95,7 @@ function formatStationItemDisplay(matched: StationItem): string {
 /**
  * 取得目前站點顯示文字。
  * 若有 WIP 快照，優先依「在站製程名／工程站」對手順書（與生產進度相同）。
+ * 工單未填時，若有 WIP 快照（例如依料號對到），改用快照內工程站字串。
  */
 export function getCurrentStationDisplay(
   workOrder: string | undefined,
@@ -102,12 +103,24 @@ export function getCurrentStationDisplay(
   stationProgressMap: Record<string, string>,
   wipSnapshot?: { atStationProcessName?: string; engineeringStation?: string } | null
 ): string {
-  if (!workOrder || !String(workOrder).trim()) return '';
-  if (Object.keys(stationProgressMap).length === 0) return '';
+  const wo = String(workOrder ?? '').trim();
+  const hasStationMap = Object.keys(stationProgressMap).length > 0;
 
-  const wipStation = lookupWorkOrderMap(stationProgressMap, workOrder);
+  let wipStation: string | undefined;
+  if (wo) {
+    if (!hasStationMap) return '';
+    wipStation = lookupWorkOrderMap(stationProgressMap, workOrder);
+  } else if (wipSnapshot) {
+    wipStation = String(wipSnapshot.engineeringStation ?? '').trim() || undefined;
+    if (!wipStation && !hasStationMap) return '';
+  } else {
+    return '';
+  }
 
-  if (wipStation === undefined || wipStation === '') return '工單錯誤';
+  if (wipStation === undefined || wipStation === '') {
+    if (wo) return '工單錯誤';
+    return '';
+  }
 
   if (pdfStations?.length) {
     if (wipSnapshot) {
