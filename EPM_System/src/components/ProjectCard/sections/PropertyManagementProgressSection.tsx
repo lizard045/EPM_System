@@ -3,11 +3,11 @@
  */
 
 import { useState } from 'react';
-import {
-  type PropertyManagementProgressModel,
-  type PropertyPendingItem,
-  type PropertyProgressCategory,
-} from '../../utils/propertyManagementProgressUtils';
+import type {
+  PropertyManagementProgressModel,
+  PropertyPendingItem,
+  PropertyProgressCategory,
+} from '../../../utils';
 import styles from './PropertyManagementProgressSection.module.css';
 
 interface PropertyManagementProgressSectionProps {

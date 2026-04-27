@@ -2,21 +2,13 @@
  * 專案卡片元件
  */
 
-import {
-  buildProductionProgressFromEngineeringStationOnly,
-  buildProductionProgressViewModel,
-  buildShippingSafetyRateViewModel,
-  computePropertyManagementProgress,
-  getCurrentStationDisplay,
-  lookupWorkOrderMap,
-  resolveWipSnapshot,
-} from '../../utils';
-import { useProjectAlerts } from '../../hooks/useProjectAlerts';
-import { useEPM } from '../../context/EPMContext';
 import type { Project } from '../../types';
-import { ProductionProgressSection } from './ProductionProgressSection';
-import { PropertyManagementProgressSection } from './PropertyManagementProgressSection';
-import { ShippingSafetyRateSection } from './ShippingSafetyRateSection';
+import {
+  ProductionProgressSection,
+  PropertyManagementProgressSection,
+  ShippingSafetyRateSection,
+} from './sections';
+import { useProjectCardData } from './useProjectCardData';
 import styles from './ProjectCard.module.css';
 
 interface ProjectCardProps {
@@ -26,41 +18,17 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, onClick }: ProjectCardProps) {
   const {
-    toolDeliveryMap,
-    partDeliveryMap,
-    materialLotDeliveryMap,
-    stationProgressMap,
-    wipByWorkOrder,
-  } = useEPM();
-  const alerts = useProjectAlerts(project, toolDeliveryMap, partDeliveryMap);
-  const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
-  const currentStationName = getCurrentStationDisplay(
-    project.workOrder,
-    project.pdfData?.stations,
-    stationProgressMap,
-    wipSnap
-  );
-  let progressModel = wipSnap ? buildProductionProgressViewModel(project, wipSnap) : null;
-  if (!progressModel) {
-    const engOnly = lookupWorkOrderMap(stationProgressMap, project.workOrder);
-    if (engOnly) {
-      progressModel = buildProductionProgressFromEngineeringStationOnly(project, engOnly);
-    }
-  }
-
-  const propertyProgressModel = computePropertyManagementProgress(
-    project,
-    partDeliveryMap,
-    toolDeliveryMap,
-    materialLotDeliveryMap
-  );
-
-  const shippingSafetyModel = buildShippingSafetyRateViewModel(project, wipSnap);
-
+    currentStationName,
+    progressModel,
+    propertyProgressModel,
+    shippingSafetyModel,
+    alerts,
+  } = useProjectCardData(project);
+  const { workOrder, mpn, formNo, qty, deadline, pdfParsed } = project;
   return (
     <div className={styles.card} onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
       <div className={styles.woHeader}>
-        <div className={styles.workOrderTag}>{project.workOrder || '未填工單'}</div>
+        <div className={styles.workOrderTag}>{workOrder || '未填工單'}</div>
         {currentStationName && (
           <div
             className={`${styles.currentPosTag} ${
@@ -70,24 +38,24 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
             目前站點：{currentStationName}
           </div>
         )}
-        {!project.pdfParsed && (
+        {!pdfParsed && (
           <span className={styles.pdfRemind}>尚未匯入手順書</span>
         )}
       </div>
-      <div className={styles.mpnTitle}>{project.mpn || '未知品目'}</div>
+      <div className={styles.mpnTitle}>{mpn || '未知品目'}</div>
       <div className={styles.field}>
         <span className={styles.fieldLabel}>表單編號</span>
         <span className={`${styles.fieldValue} ${styles.formNo}`}>
-          {project.formNo || '---'}
+          {formNo || '---'}
         </span>
       </div>
       <div className={styles.field}>
         <span className={styles.fieldLabel}>數量</span>
-        <span className={styles.fieldValue}>{project.qty || 0} PCS</span>
+        <span className={styles.fieldValue}>{qty || 0} PCS</span>
       </div>
       <div className={styles.field}>
         <span className={styles.fieldLabel}>交期</span>
-        <span className={styles.fieldValue}>{project.deadline || '未定'}</span>
+        <span className={styles.fieldValue}>{deadline || '未定'}</span>
       </div>
       {progressModel && <ProductionProgressSection model={progressModel} />}
       {shippingSafetyModel.canRender && (
@@ -95,7 +63,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
       )}
       <PropertyManagementProgressSection
         model={propertyProgressModel}
-        pdfParsed={project.pdfParsed}
+        pdfParsed={pdfParsed}
       />
       {alerts.toolingIncomplete && (
         <div className={styles.cardWarning}>模治具尚未備齊</div>

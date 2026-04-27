@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import type { ShippingSafetyRateViewModel } from '../../utils/shippingSafetyRateUtils';
+import type { ShippingSafetyRateViewModel } from '../../../utils';
 import styles from './ShippingSafetyRateSection.module.css';
 
 interface ShippingSafetyRateSectionProps {

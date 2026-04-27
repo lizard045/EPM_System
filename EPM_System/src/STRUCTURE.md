@@ -62,15 +62,18 @@ src/
 │   │   ├── filterIcons.tsx
 │   │   ├── types.ts
 │   │   └── index.ts
-│   ├── ProjectCard/                # 卡片檢視（含生產、物管、出貨/安全庫存區）
+│   ├── ProjectCard/                # 卡片檢視（外殼 + 資料 hook + 可摺疊區塊）
 │   │   ├── ProjectCard.tsx
-│   │   ├── ProductionProgressSection.tsx
-│   │   ├── PropertyManagementProgressSection.tsx
-│   │   ├── ShippingSafetyRateSection.tsx
+│   │   ├── useProjectCardData.ts   # 彙整站點、WIP、三種進度模型與預警
 │   │   ├── ProjectCard.module.css
-│   │   ├── ProductionProgressSection.module.css
-│   │   ├── PropertyManagementProgressSection.module.css
-│   │   ├── ShippingSafetyRateSection.module.css
+│   │   ├── sections/               # 生產／物管／出貨安全率 UI
+│   │   │   ├── ProductionProgressSection.tsx
+│   │   │   ├── PropertyManagementProgressSection.tsx
+│   │   │   ├── ShippingSafetyRateSection.tsx
+│   │   │   ├── ProductionProgressSection.module.css
+│   │   │   ├── PropertyManagementProgressSection.module.css
+│   │   │   ├── ShippingSafetyRateSection.module.css
+│   │   │   └── index.ts
 │   │   └── index.ts
 │   ├── ProjectTable/               # 表格檢視
 │   │   ├── ProjectTable.tsx
@@ -110,5 +113,5 @@ src/
 1. **HeaderPanel** 觸發匯入，交由 `parsers` 解析，透過 `useEPMStore` 寫入狀態與 LocalStorage。
 2. **DashboardView** 使用 `useDashboardProjectFilter` 取得搜尋/篩選/排序後資料，並切換卡片或表格顯示。
 3. 點擊專案進入 **DetailView**，可更新工單、上傳 Traveler，並由 `travelerParser` 產生 `pdfData`。
-4. **ProjectCard** 內生產/物管/出貨安全等區塊，搭配 `utils` 內對應計算邏輯顯示摘要。
+4. **ProjectCard** 透過 `useProjectCardData` 讀取 context 並計算模型，**sections** 內三區塊負責呈現；計算邏輯在 `utils`。
 5. **PdfResultSection** 以 `project.pdfData` 與交期 map 比對，顯示零件、模治具、補材與站點結果。

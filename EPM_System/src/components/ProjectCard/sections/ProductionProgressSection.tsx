@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import type { ProductionProgressViewModel } from '../../utils/productionProgressUtils';
+import type { ProductionProgressViewModel } from '../../../utils';
 import styles from './ProductionProgressSection.module.css';
 
 const STEPPER_LABELS = ['待投入', '生產中', '產出待移出'] as const;
