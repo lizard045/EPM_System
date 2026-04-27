@@ -18,8 +18,13 @@ export interface ProductionProgressViewModel {
   processName: string;
   hoursDisplay: string;
   ipqcStatus: string;
-  /** null：不強調任何階段（避免無 IPQC 時誤亮「生產中」） */
-  stepperIndex: ProductionStepperIndex | null;
+  /**
+   * standard：WIP 第 9 欄可對應「待投入／生產中／產出待移出」三階（含 (TR)待移轉＝產出待移出）；
+   * override：非上列三階之狀態，僅以 ipqcStatus 原文呈現，不顯示三階條。
+   */
+  ipqcUiMode: 'standard' | 'override';
+  /** 僅 standard 有效：0=待投入、1=生產中、2=產出待移出（(TR)待移轉 亦為 2） */
+  ipqcStandardStep: 0 | 1 | 2 | null;
   hasTotalFromTraveler: boolean;
   /**
    * 已用手順書站點清單比對 WIP（在站製程名／工程站）成功，百分比與「目前/總站數」才有效。
@@ -66,15 +71,59 @@ function normalizeIpqcForStepper(ipqc: string): string {
     .replace(/）/g, ')');
 }
 
-/** 生產中狀態 (IPQC) → 附圖三階段；無資料時不猜測（回傳 null） */
-export function ipqcToStepperIndex(ipqc: string): ProductionStepperIndex | null {
+/**
+ * 依 WIP 第 9 欄 (IPQC) 決定 UI：
+ * - standard + step：可對三階段（(TR)待移轉 ＝ 產出待移出＝第 3 階）；
+ * - override：(QH)(OS) 等不屬三階者，以原文覆蓋、不顯示三階條。
+ */
+export function resolveIpqcUi(
+  ipqc: string
+): { mode: 'standard'; step: 0 | 1 | 2 } | { mode: 'override' } {
   const t = normalizeIpqcForStepper(ipqc);
-  if (!t) return null;
-  if (/\(SI\)待投入/.test(t)) return 0;
-  if (/\(SI\)/.test(t) && t.includes('待投入')) return 0;
-  if (t.includes('待投入') && !t.includes('待生產') && !t.includes('待移轉')) return 0;
-  if (/\(SO\)產出待移出/.test(t) || (t.includes('產出') && t.includes('移出'))) return 2;
-  return 1;
+  if (!t) return { mode: 'override' };
+
+  if (/\(TR\)待移轉/.test(t)) {
+    return { mode: 'standard', step: 2 };
+  }
+  if (/\(SI\)待投入/.test(t)) {
+    return { mode: 'standard', step: 0 };
+  }
+  if (/\(SI\)/.test(t) && t.includes('待投入')) {
+    return { mode: 'standard', step: 0 };
+  }
+  if (t.includes('待投入') && !t.includes('待生產') && !t.includes('待移轉')) {
+    return { mode: 'standard', step: 0 };
+  }
+
+  if (/\(SO\)產出待移出/.test(t) || (t.includes('產出') && t.includes('移出'))) {
+    return { mode: 'standard', step: 2 };
+  }
+
+  if (/\(RN\)生產中/.test(t)) {
+    return { mode: 'standard', step: 1 };
+  }
+  if (/\(HD\)/.test(t) && t.includes('暫停')) {
+    return { mode: 'standard', step: 1 };
+  }
+  if (/\(SB\)待生產/.test(t)) {
+    return { mode: 'standard', step: 1 };
+  }
+
+  if (/\(QH\)/.test(t) || /暫定Hold|IPQC暫定/i.test(t)) {
+    return { mode: 'override' };
+  }
+  if (/\(OS\)/.test(t)) {
+    return { mode: 'override' };
+  }
+
+  return { mode: 'override' };
+}
+
+/** @deprecated 請用 resolveIpqcUi + ipqcUiMode */
+export function ipqcToStepperIndex(ipqc: string): ProductionStepperIndex | null {
+  const r = resolveIpqcUi(ipqc);
+  if (r.mode === 'override') return null;
+  return r.step;
 }
 
 export function buildProductionProgressViewModel(
@@ -104,6 +153,11 @@ export function buildProductionProgressViewModel(
     currentStep = fromAtStep > 0 ? fromAtStep : fromDone;
   }
 
+  const ipqcRaw = wip.ipqcStatus || '—';
+  const ipqcUi = resolveIpqcUi(String(wip.ipqcStatus ?? ''));
+  const ipqcUiMode = ipqcUi.mode;
+  const ipqcStandardStep = ipqcUi.mode === 'standard' ? ipqcUi.step : null;
+
   return {
     currentStep,
     totalSteps: hasTotalFromTraveler ? totalSteps : Math.max(currentStep, 0),
@@ -112,8 +166,9 @@ export function buildProductionProgressViewModel(
     endDateDisplay: formatMonthDayDisplay(project.deadline),
     processName: wip.atStationProcessName || '—',
     hoursDisplay: wip.hoursAtStationDisplay || '—',
-    ipqcStatus: wip.ipqcStatus || '—',
-    stepperIndex: ipqcToStepperIndex(wip.ipqcStatus),
+    ipqcStatus: ipqcRaw,
+    ipqcUiMode,
+    ipqcStandardStep,
     hasTotalFromTraveler,
     travelerProgressMatched,
   };
@@ -156,7 +211,8 @@ export function buildProductionProgressFromEngineeringStationOnly(
     processName: eng,
     hoursDisplay: '—',
     ipqcStatus: '—',
-    stepperIndex: null,
+    ipqcUiMode: 'override',
+    ipqcStandardStep: null,
     hasTotalFromTraveler,
     travelerProgressMatched,
   };

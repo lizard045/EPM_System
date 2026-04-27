@@ -12,6 +12,7 @@ export {
   buildProductionProgressViewModel,
   formatMonthDayDisplay,
   ipqcToStepperIndex,
+  resolveIpqcUi,
 } from './productionProgressUtils';
 export type { ProductionProgressViewModel, ProductionStepperIndex } from './productionProgressUtils';
 export { computePropertyManagementProgress } from './propertyManagementProgressUtils';

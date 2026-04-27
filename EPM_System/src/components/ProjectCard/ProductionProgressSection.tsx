@@ -77,32 +77,48 @@ export function ProductionProgressSection({ model }: ProductionProgressSectionPr
             <span>{model.endDateDisplay}</span>
           </div>
 
+          <div className={styles.statusBlock} aria-label="WIP 生產中狀態 IPQC">
+            <div className={styles.statusBlockLabel}>
+              {model.ipqcUiMode === 'override' &&
+              model.ipqcStatus &&
+              String(model.ipqcStatus).trim() &&
+              String(model.ipqcStatus).trim() !== '—'
+                ? model.ipqcStatus 
+                : '生產中狀態 IPQC'}
+            </div>
+            <div className={styles.statusBlockValue}>
+              {model.ipqcStatus?.trim() ? model.ipqcStatus : '—'}
+            </div>
+          </div>
+
           <div className={styles.processRow}>
             <div className={styles.processLeft}>
               <div className={styles.processName}>{model.processName}</div>
-              <div className={styles.ipqcLine}>
-                生產中狀態 (IPQC)：{model.ipqcStatus}
-              </div>
             </div>
             <div className={styles.hours}>{model.hoursDisplay}</div>
           </div>
 
-          <div className={styles.stepper} role="list">
-            {STEPPER_LABELS.map((label, i) => (
-              <div key={label} className={styles.stepperItem} role="listitem">
-                {i > 0 && <span className={styles.stepperArrow} aria-hidden>{'›'}</span>}
-                <span
-                  className={
-                    model.stepperIndex !== null && model.stepperIndex === i
-                      ? styles.stepperActive
-                      : styles.stepperMuted
-                  }
-                >
-                  {label}
-                </span>
+          {model.ipqcUiMode === 'standard' && model.ipqcStandardStep !== null && (
+            <div className={styles.flowRefSection}>
+              <div className={styles.flowRefLabel}>
+                生產流程階段
               </div>
-            ))}
-          </div>
+              <div className={styles.stepper} role="list">
+                {STEPPER_LABELS.map((label, i) => (
+                  <div key={label} className={styles.stepperItem} role="listitem">
+                    {i > 0 && <span className={styles.stepperArrow} aria-hidden>{'›'}</span>}
+                    <span
+                      className={
+                        i === model.ipqcStandardStep ? styles.stepperActive : styles.stepperMuted
+                      }
+                    >
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
