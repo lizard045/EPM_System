@@ -44,6 +44,7 @@ src/
 │   ├── propertyManagementProgressUtils.ts  # 物管進度計算
 │   ├── shippingSafetyRateUtils.ts  # 出貨/安全庫存相關計算
 │   ├── wipLookupUtils.ts           # WIP / 在站查詢輔助
+│   ├── materialRouteUtils.ts       # WIP 製程與手順書材站點比對、材料完工站
 │   └── index.ts
 │
 ├── components/
@@ -104,7 +105,7 @@ src/
 | **parsers** | 來源檔案解析（HTML / Excel） |
 | **hooks** | 狀態封裝與副作用邏輯 |
 | **context** | 全域狀態注入 |
-| **utils** | 純函式計算（篩選、預警、站點、進度、WIP、出貨/安全庫存） |
+| **utils** | 純函式計算（篩選、預警、站點、進度、WIP、材站路徑、出貨/安全庫存） |
 | **components** | 可重用 UI 元件與區塊 |
 | **views** | 頁面組裝與使用者流程 |
 
