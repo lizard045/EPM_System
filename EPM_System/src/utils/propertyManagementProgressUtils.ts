@@ -3,6 +3,7 @@
  */
 
 import { isFutureDate } from './dateUtils';
+import type { MaterialWipResolution } from './materialRouteUtils';
 import type { Project } from '../types';
 
 const PART_GLOBAL_INCOMPLETE = ['尚未', '待', '未齊'] as const;
@@ -38,6 +39,7 @@ export interface PropertyProgressCategory {
 export interface PropertyManagementProgressModel {
   parts: PropertyProgressCategory;
   tooling: PropertyProgressCategory;
+  material: PropertyProgressCategory;
   consumables: PropertyProgressCategory;
   /** 尚未入料／未備妥項目（依零件→模治具→補材順序） */
   pendingItems: PropertyPendingItem[];
@@ -150,6 +152,45 @@ function computeToolingCategory(project: Project, toolDeliveryMap: Record<string
     received,
     hasTravelerItems: true,
     hasExcelHint,
+  };
+}
+
+function computeMaterialCategory(
+  project: Project,
+  resolution: MaterialWipResolution | undefined,
+  wipFound: boolean
+): PropertyProgressCategory {
+  const routes = project.pdfData?.materialRoutes ?? [];
+  if (!project.pdfParsed || routes.length === 0) {
+    return {
+      label: '材料',
+      total: 0,
+      received: 0,
+      hasTravelerItems: false,
+      hasExcelHint: wipFound,
+    };
+  }
+
+  const flatStations = routes.flatMap((g) => g.stations);
+  const totalSteps = flatStations.length;
+
+  let received = 0;
+  if (resolution?.matchedStation && totalSteps > 0) {
+    const matched = resolution.matchedStation;
+    const idx = flatStations.findIndex(
+      (s) => s.code === matched.code && s.name === matched.name
+    );
+    if (idx >= 0) {
+      received = resolution.isCompletion ? totalSteps : idx + 1;
+    }
+  }
+
+  return {
+    label: '材料',
+    total: totalSteps,
+    received,
+    hasTravelerItems: true,
+    hasExcelHint: wipFound,
   };
 }
 
@@ -290,11 +331,16 @@ export function computePropertyManagementProgress(
   project: Project,
   partDeliveryMap: Record<string, string>,
   toolDeliveryMap: Record<string, string>,
-  materialLotDeliveryMap: Record<string, string>
+  materialLotDeliveryMap: Record<string, string>,
+  materialCtx?: { resolution: MaterialWipResolution; wipFound: boolean }
 ): PropertyManagementProgressModel {
+  const materialResolution = materialCtx?.resolution;
+  const wipFound = materialCtx?.wipFound ?? false;
+
   return {
     parts: computePartsCategory(project, partDeliveryMap),
     tooling: computeToolingCategory(project, toolDeliveryMap),
+    material: computeMaterialCategory(project, materialResolution, wipFound),
     consumables: computeConsumablesCategory(project, materialLotDeliveryMap),
     pendingItems: collectPendingItems(
       project,

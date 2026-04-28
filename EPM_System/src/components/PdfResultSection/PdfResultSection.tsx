@@ -6,9 +6,12 @@ import type { ReactNode } from 'react';
 import {
   findMatchingPdfStation,
   fixDateDisplay,
+  isMaterialCompletionStation,
   lookupWorkOrderMap,
   matchWipToTravelerStation,
+  resolveMaterialWipAgainstRoutes,
   resolveWipSnapshot,
+  resolveWipSnapshotByWorkOrderKey,
 } from '../../utils';
 import { useEPM } from '../../context/EPMContext';
 import type { Project } from '../../types';
@@ -30,6 +33,19 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
   if (!project.pdfParsed || !project.pdfData) return null;
 
   const { parts, jigs, consumables, stations } = project.pdfData;
+  const materialRoutes = project.pdfData.materialRoutes ?? [];
+
+  const materialWoKey =
+    project.materialWorkOrder?.trim() || project.workOrder?.trim() || '';
+  const materialWipSnap = resolveWipSnapshotByWorkOrderKey(
+    wipByWorkOrder,
+    materialWoKey || undefined,
+    project.mpn
+  );
+  const materialResolution = resolveMaterialWipAgainstRoutes(
+    materialWipSnap,
+    materialRoutes
+  );
   const prog = partDeliveryMap[project.formNo?.toUpperCase() ?? ''] ?? '';
   const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
   let wipStation = lookupWorkOrderMap(stationProgressMap, project.workOrder) ?? null;
@@ -132,6 +148,59 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
             <li>無資料</li>
           )}
         </ul>
+      </div>
+
+      <div className={styles.resultBlock}>
+        <div className={styles.resultTitle}>材料（手順書 材）</div>
+        {materialRoutes.length > 0 ? (
+          <ul className={styles.resultList}>
+            {materialRoutes.map((g) => {
+                const hasWip = !!(
+                  materialWipSnap && materialResolution.matchedStation
+                );
+                return (
+                  <li key={g.segmentCode + g.titleLine}>
+                    <div className={styles.materialSegmentTitle}>
+                      {g.titleLine}
+                    </div>
+                    <ul className={styles.materialSubList}>
+                      {g.stations.map((s) => {
+                        const isThis =
+                          hasWip &&
+                          materialResolution.matchedSegmentCode ===
+                            g.segmentCode &&
+                          s.code === materialResolution.matchedStation?.code;
+                        const done = isMaterialCompletionStation(s);
+                        return (
+                          <li
+                            key={g.segmentCode + s.code + s.name}
+                            className={isThis ? styles.materialLiCurrentStation : ''}
+                          >
+                            <span className={styles.tagBadge}>{s.code}</span>
+                            {s.name}
+                            {isThis && done && (
+                              <span className={styles.materialDoneBadge}>
+                                已完工
+                              </span>
+                            )}
+                            {isThis && !done && (
+                              <span className={styles.materialAtStationLabel}>
+                                目前站點
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </li>
+                );
+              })}
+          </ul>
+        ) : (
+          <p className={styles.materialEmpty}>
+            此手順書未含「手順書(材)」工作表
+          </p>
+        )}
       </div>
 
       <div className={styles.resultBlock}>

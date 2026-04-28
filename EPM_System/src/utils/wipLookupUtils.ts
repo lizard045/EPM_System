@@ -7,14 +7,18 @@ import type { WipSnapshot } from '../parsers/excelParser';
 import type { Project } from '../types';
 import { lookupWorkOrderMap, normalizeWorkOrderKey } from './stationUtils';
 
-export function resolveWipSnapshot(
+/**
+ * 依指定工單號碼（及傳票品目）解析 WIP 快照。
+ */
+export function resolveWipSnapshotByWorkOrderKey(
   wipByWorkOrder: Record<string, WipSnapshot>,
-  project: Project
+  workOrder: string | undefined,
+  mpn: string
 ): WipSnapshot | undefined {
-  const byWo = lookupWorkOrderMap(wipByWorkOrder, project.workOrder);
+  const byWo = lookupWorkOrderMap(wipByWorkOrder, workOrder);
   if (byWo) return byWo;
 
-  const needle = normalizeWorkOrderKey(project.mpn);
+  const needle = normalizeWorkOrderKey(mpn);
   if (!needle) return undefined;
 
   for (const snap of Object.values(wipByWorkOrder)) {
@@ -30,4 +34,11 @@ export function resolveWipSnapshot(
   }
 
   return undefined;
+}
+
+export function resolveWipSnapshot(
+  wipByWorkOrder: Record<string, WipSnapshot>,
+  project: Project
+): WipSnapshot | undefined {
+  return resolveWipSnapshotByWorkOrderKey(wipByWorkOrder, project.workOrder, project.mpn);
 }

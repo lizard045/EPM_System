@@ -10,9 +10,12 @@ import {
   buildProductionProgressViewModel,
   buildShippingSafetyRateViewModel,
   computePropertyManagementProgress,
+  formatMaterialStationDisplay,
   getCurrentStationDisplay,
   lookupWorkOrderMap,
+  resolveMaterialWipAgainstRoutes,
   resolveWipSnapshot,
+  resolveWipSnapshotByWorkOrderKey,
   type ProductionProgressViewModel,
 } from '../../utils';
 
@@ -26,6 +29,22 @@ export function useProjectCardData(project: Project) {
   } = useEPM();
   const alerts = useProjectAlerts(project, toolDeliveryMap, partDeliveryMap);
   const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
+  const materialWoKey =
+    project.materialWorkOrder?.trim() || project.workOrder?.trim() || '';
+  const materialWipSnap = resolveWipSnapshotByWorkOrderKey(
+    wipByWorkOrder,
+    materialWoKey || undefined,
+    project.mpn
+  );
+  const materialRoutes = project.pdfData?.materialRoutes ?? [];
+  const materialResolution = resolveMaterialWipAgainstRoutes(
+    materialWipSnap,
+    materialRoutes
+  );
+  const materialStationTag =
+    project.pdfParsed && materialRoutes.length > 0
+      ? formatMaterialStationDisplay(materialResolution)
+      : null;
   const currentStationName = getCurrentStationDisplay(
     project.workOrder,
     project.pdfData?.stations,
@@ -47,7 +66,11 @@ export function useProjectCardData(project: Project) {
     project,
     partDeliveryMap,
     toolDeliveryMap,
-    materialLotDeliveryMap
+    materialLotDeliveryMap,
+    {
+      resolution: materialResolution,
+      wipFound: !!materialWipSnap,
+    }
   );
 
   const shippingSafetyModel = buildShippingSafetyRateViewModel(project, wipSnap);
@@ -58,5 +81,6 @@ export function useProjectCardData(project: Project) {
     propertyProgressModel,
     shippingSafetyModel,
     alerts,
+    materialStationTag,
   };
 }

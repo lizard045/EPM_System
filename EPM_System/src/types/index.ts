@@ -36,6 +36,8 @@ export interface Project {
   qty: string;
   deadline: string;
   workOrder: string;
+  /** 材料工單號碼（比對 WIP 用；空白則沿用上方工單號碼） */
+  materialWorkOrder?: string;
   pdfParsed: boolean;
   pdfData: PdfData | null;
   isArchived: boolean;
@@ -55,6 +57,8 @@ export interface PdfData {
   parts: PartItem[];
   consumables: ConsumableItem[];
   stations: StationItem[];
+  /** 手順書(材)；無工作表時為 [] */
+  materialRoutes: MaterialRouteGroup[];
 }
 
 /** 模治具項目 */
@@ -80,6 +84,14 @@ export interface ConsumableItem {
 export interface StationItem {
   code: string;
   name: string;
+}
+
+/** 手順書(材) 單一材料製程段（如 F03、P04） */
+export interface MaterialRouteGroup {
+  segmentCode: string;
+  /** 列標題列，如「F03:　背面單面銅箔」 */
+  titleLine: string;
+  stations: StationItem[];
 }
 
 /** 專案預警狀態 */

@@ -4,7 +4,13 @@
 
 import { useRef, useState } from 'react';
 import { useEPM } from '../../context/EPMContext';
-import { getCurrentStationDisplay, resolveWipSnapshot } from '../../utils';
+import {
+  formatMaterialStationDisplay,
+  getCurrentStationDisplay,
+  resolveMaterialWipAgainstRoutes,
+  resolveWipSnapshot,
+  resolveWipSnapshotByWorkOrderKey,
+} from '../../utils';
 import { parseTravelerExcel } from '../../parsers';
 import { PdfResultSection } from '../../components/PdfResultSection';
 import styles from './DetailView.module.css';
@@ -32,6 +38,23 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
     wipSnap
   );
 
+  const materialWoKey =
+    project.materialWorkOrder?.trim() || project.workOrder?.trim() || '';
+  const materialRoutes = project.pdfData?.materialRoutes ?? [];
+  const materialWipSnap = resolveWipSnapshotByWorkOrderKey(
+    wipByWorkOrder,
+    materialWoKey || undefined,
+    project.mpn
+  );
+  const materialResolution = resolveMaterialWipAgainstRoutes(
+    materialWipSnap,
+    materialRoutes
+  );
+  const materialStationLine =
+    project.pdfParsed && materialRoutes.length > 0
+      ? formatMaterialStationDisplay(materialResolution) ?? '-'
+      : '-';
+
   const handleArchive = () => {
     if (window.confirm('確定要結案此傳票嗎？')) {
       updateProject(projectId, { isArchived: true });
@@ -41,6 +64,10 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
 
   const handleUpdateWorkOrder = (value: string) => {
     updateProject(projectId, { workOrder: value });
+  };
+
+  const handleUpdateMaterialWorkOrder = (value: string) => {
+    updateProject(projectId, { materialWorkOrder: value });
   };
 
   const handleProcessTraveler = () => {
@@ -112,26 +139,54 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
           </div>
         </div>
 
-        <div className={styles.workOrderSection}>
-          <span className={styles.label}>工單號碼：</span>
-          <input
-            type="text"
-            className={styles.workOrderInput}
-            placeholder="請輸入工單號碼..."
-            value={project.workOrder}
-            onChange={(e) => handleUpdateWorkOrder(e.target.value)}
-          />
+        <div className={styles.workOrderRow}>
+          <div className={styles.workOrderSection}>
+            <span className={styles.label}>工單號碼：</span>
+            <input
+              type="text"
+              className={styles.workOrderInput}
+              placeholder="請輸入工單號碼..."
+              value={project.workOrder}
+              onChange={(e) => handleUpdateWorkOrder(e.target.value)}
+            />
+          </div>
+          <div className={styles.workOrderSection}>
+            <span className={styles.label}>材料工單：</span>
+            <input
+              type="text"
+              className={styles.workOrderInput}
+              placeholder="請輸入材料工單號碼..."
+              value={project.materialWorkOrder ?? ''}
+              onChange={(e) => handleUpdateMaterialWorkOrder(e.target.value)}
+            />
+          </div>
         </div>
 
-        <div className={styles.stationSection}>
-          <span className={styles.label}>目前站點：</span>
-          <span
-            className={
-              currentStation === '工單錯誤' ? styles.stationError : undefined
-            }
-          >
-            {currentStation || '-'}
-          </span>
+        <div className={styles.stationRow}>
+          <div className={styles.stationSection}>
+            <span className={styles.label}>目前站點：</span>
+            <span
+              className={
+                currentStation === '工單錯誤'
+                  ? styles.stationError
+                  : styles.currentStationBox
+              }
+            >
+              {currentStation || '-'}
+            </span>
+          </div>
+          <div className={styles.stationSection}>
+            <span className={styles.label}>材料站點：</span>
+            <span
+              className={
+                materialStationLine !== '-'
+                  ? styles.materialStationHighlight
+                  : undefined
+              }
+            >
+              {materialStationLine}
+            </span>
+          </div>
         </div>
 
         <div className={styles.pdfSection}>

@@ -1,5 +1,5 @@
 /**
- * 卡片內「物管進度」：零件 / 模治具 / 補材 入料比例
+ * 卡片內「物管進度」：零件 / 模治具 / 材料 / 補材 入料比例
  */
 
 import { useState } from 'react';
@@ -61,7 +61,11 @@ function rowHint(cat: PropertyProgressCategory, pdfParsed: boolean): string | nu
   if (!cat.hasTravelerItems) {
     if (cat.label === '零件') return '手順書無零件項';
     if (cat.label === '模治具') return '手順書無模治具項';
+    if (cat.label === '材料') return '手順書無材料製程項';
     return '手順書無補材項';
+  }
+  if (cat.label === '材料' && !cat.hasExcelHint) {
+    return '尚無 WIP 可比對材料在站';
   }
   if (cat.label === '零件' && !cat.hasExcelHint) {
     return '尚無傳票對應之零件備料進度';
@@ -80,7 +84,7 @@ export function PropertyManagementProgressSection({
   pdfParsed,
 }: PropertyManagementProgressSectionProps) {
   const [open, setOpen] = useState(true);
-  const rows = [model.parts, model.tooling, model.consumables];
+  const rows = [model.parts, model.tooling, model.material, model.consumables];
 
   return (
     <div

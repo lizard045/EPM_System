@@ -65,8 +65,53 @@
   margin: 20px 0;
 }
 
+.workOrderRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  align-items: flex-end;
+  margin: 16px 0;
+}
+
+.workOrderRow .workOrderSection {
+  margin: 0;
+}
+
+.stationRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 40px;
+  align-items: baseline;
+  margin: 12px 0;
+}
+
 .stationSection {
-  margin: 10px 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/** 詳頁「目前站點」：與材料站點同為方框，黃色系（對應卡片目前站點標籤） */
+.currentStationBox {
+  color: #827717;
+  font-weight: 600;
+  background-color: #fff9c4;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid #f0d785;
+  font-size: 14px;
+}
+
+.materialStationHighlight {
+  color: #005a9e;
+  font-weight: 600;
+  background-color: #deecf9;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid #0078d4;
+  font-size: 14px;
 }
 
 .label {
@@ -85,9 +130,11 @@
 .stationError {
   color: #721c24;
   background-color: #f8d7da;
-  padding: 3px 8px;
+  padding: 4px 12px;
   border-radius: 4px;
   border: 1px solid #f5c6cb;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .pdfSection {
