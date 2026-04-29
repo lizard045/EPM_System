@@ -6,10 +6,11 @@ import type { ReactNode } from 'react';
 import {
   findMatchingPdfStation,
   fixDateDisplay,
+  getMaterialWorkOrderList,
   isMaterialCompletionStation,
   lookupWorkOrderMap,
   matchWipToTravelerStation,
-  resolveMaterialWipAgainstRoutes,
+  resolveMaterialWipAgainstSegment,
   resolveWipSnapshot,
   resolveWipSnapshotByWorkOrderKey,
 } from '../../utils';
@@ -34,18 +35,7 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
 
   const { parts, jigs, consumables, stations } = project.pdfData;
   const materialRoutes = project.pdfData.materialRoutes ?? [];
-
-  const materialWoKey =
-    project.materialWorkOrder?.trim() || project.workOrder?.trim() || '';
-  const materialWipSnap = resolveWipSnapshotByWorkOrderKey(
-    wipByWorkOrder,
-    materialWoKey || undefined,
-    project.mpn
-  );
-  const materialResolution = resolveMaterialWipAgainstRoutes(
-    materialWipSnap,
-    materialRoutes
-  );
+  const materialWoList = getMaterialWorkOrderList(project, materialRoutes.length);
   const prog = partDeliveryMap[project.formNo?.toUpperCase() ?? ''] ?? '';
   const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
   let wipStation = lookupWorkOrderMap(stationProgressMap, project.workOrder) ?? null;
@@ -154,10 +144,21 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
         <div className={styles.resultTitle}>材料（手順書 材）</div>
         {materialRoutes.length > 0 ? (
           <ul className={styles.resultList}>
-            {materialRoutes.map((g) => {
-                const hasWip = !!(
-                  materialWipSnap && materialResolution.matchedStation
+            {materialRoutes.map((g, segIdx) => {
+                const wo = materialWoList[segIdx]?.trim();
+                const materialWipSnapSeg = resolveWipSnapshotByWorkOrderKey(
+                  wipByWorkOrder,
+                  wo || undefined,
+                  project.mpn
                 );
+                const materialResolutionSeg = resolveMaterialWipAgainstSegment(
+                  materialWipSnapSeg,
+                  g
+                );
+                const hasWip = !!(
+                  materialWipSnapSeg && materialResolutionSeg.matchedStation
+                );
+                const matched = materialResolutionSeg.matchedStation;
                 return (
                   <li key={g.segmentCode + g.titleLine}>
                     <div className={styles.materialSegmentTitle}>
@@ -167,14 +168,16 @@ export function PdfResultSection({ project }: PdfResultSectionProps) {
                       {g.stations.map((s) => {
                         const isThis =
                           hasWip &&
-                          materialResolution.matchedSegmentCode ===
-                            g.segmentCode &&
-                          s.code === materialResolution.matchedStation?.code;
+                          !!matched &&
+                          s.code === matched.code &&
+                          s.name === matched.name;
                         const done = isMaterialCompletionStation(s);
                         return (
                           <li
                             key={g.segmentCode + s.code + s.name}
-                            className={isThis ? styles.materialLiCurrentStation : ''}
+                            className={
+                              isThis ? styles.materialLiCurrentStation : ''
+                            }
                           >
                             <span className={styles.tagBadge}>{s.code}</span>
                             {s.name}

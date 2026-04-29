@@ -9,13 +9,12 @@ import {
   buildProductionProgressFromEngineeringStationOnly,
   buildProductionProgressViewModel,
   buildShippingSafetyRateViewModel,
+  computeMaterialSegmentLit,
+  computeMaterialWipFoundAny,
   computePropertyManagementProgress,
-  formatMaterialStationDisplay,
   getCurrentStationDisplay,
   lookupWorkOrderMap,
-  resolveMaterialWipAgainstRoutes,
   resolveWipSnapshot,
-  resolveWipSnapshotByWorkOrderKey,
   type ProductionProgressViewModel,
 } from '../../utils';
 
@@ -29,21 +28,23 @@ export function useProjectCardData(project: Project) {
   } = useEPM();
   const alerts = useProjectAlerts(project, toolDeliveryMap, partDeliveryMap);
   const wipSnap = resolveWipSnapshot(wipByWorkOrder, project);
-  const materialWoKey =
-    project.materialWorkOrder?.trim() || project.workOrder?.trim() || '';
-  const materialWipSnap = resolveWipSnapshotByWorkOrderKey(
-    wipByWorkOrder,
-    materialWoKey || undefined,
-    project.mpn
-  );
   const materialRoutes = project.pdfData?.materialRoutes ?? [];
-  const materialResolution = resolveMaterialWipAgainstRoutes(
-    materialWipSnap,
+  const segmentLit = computeMaterialSegmentLit(
+    wipByWorkOrder,
+    project,
     materialRoutes
   );
-  const materialStationTag =
+  const wipFoundAny = computeMaterialWipFoundAny(
+    wipByWorkOrder,
+    project,
+    materialRoutes
+  );
+  const materialSlots =
     project.pdfParsed && materialRoutes.length > 0
-      ? formatMaterialStationDisplay(materialResolution)
+      ? {
+          codes: materialRoutes.map((r) => r.segmentCode),
+          lit: segmentLit,
+        }
       : null;
   const currentStationName = getCurrentStationDisplay(
     project.workOrder,
@@ -68,8 +69,8 @@ export function useProjectCardData(project: Project) {
     toolDeliveryMap,
     materialLotDeliveryMap,
     {
-      resolution: materialResolution,
-      wipFound: !!materialWipSnap,
+      slots: materialSlots,
+      wipFoundAny,
     }
   );
 
@@ -81,6 +82,5 @@ export function useProjectCardData(project: Project) {
     propertyProgressModel,
     shippingSafetyModel,
     alerts,
-    materialStationTag,
   };
 }

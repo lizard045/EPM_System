@@ -69,3 +69,40 @@ export function resolveMaterialWipAgainstRoutes(
   };
 }
 
+/**
+ * 僅在「單一」材料製程段內比對在站製程名（避免多段重複工程碼時誤判為第一段）。
+ */
+export function resolveMaterialWipAgainstSegment(
+  wip: WipSnapshot | undefined,
+  segment: MaterialRouteGroup | undefined
+): MaterialWipResolution {
+  const raw = String(wip?.atStationProcessName ?? '').trim();
+  const list = segment?.stations ?? [];
+
+  if (!raw || !segment || list.length === 0) {
+    return {
+      wipProcessRaw: raw,
+      matchedStation: null,
+      matchedSegmentCode: null,
+      isCompletion: false,
+    };
+  }
+
+  const m = findMatchingPdfStation(raw, list);
+  if (m) {
+    return {
+      wipProcessRaw: raw,
+      matchedStation: m,
+      matchedSegmentCode: segment.segmentCode,
+      isCompletion: isMaterialCompletionStation(m),
+    };
+  }
+
+  return {
+    wipProcessRaw: raw,
+    matchedStation: null,
+    matchedSegmentCode: null,
+    isCompletion: false,
+  };
+}
+

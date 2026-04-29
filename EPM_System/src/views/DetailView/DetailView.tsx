@@ -5,11 +5,9 @@
 import { useRef, useState } from 'react';
 import { useEPM } from '../../context/EPMContext';
 import {
-  formatMaterialStationDisplay,
   getCurrentStationDisplay,
-  resolveMaterialWipAgainstRoutes,
+  getMaterialWorkOrderList,
   resolveWipSnapshot,
-  resolveWipSnapshotByWorkOrderKey,
 } from '../../utils';
 import { parseTravelerExcel } from '../../parsers';
 import { PdfResultSection } from '../../components/PdfResultSection';
@@ -38,22 +36,8 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
     wipSnap
   );
 
-  const materialWoKey =
-    project.materialWorkOrder?.trim() || project.workOrder?.trim() || '';
   const materialRoutes = project.pdfData?.materialRoutes ?? [];
-  const materialWipSnap = resolveWipSnapshotByWorkOrderKey(
-    wipByWorkOrder,
-    materialWoKey || undefined,
-    project.mpn
-  );
-  const materialResolution = resolveMaterialWipAgainstRoutes(
-    materialWipSnap,
-    materialRoutes
-  );
-  const materialStationLine =
-    project.pdfParsed && materialRoutes.length > 0
-      ? formatMaterialStationDisplay(materialResolution) ?? '-'
-      : '-';
+  const materialWoList = getMaterialWorkOrderList(project, materialRoutes.length);
 
   const handleArchive = () => {
     if (window.confirm('確定要結案此傳票嗎？')) {
@@ -66,8 +50,13 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
     updateProject(projectId, { workOrder: value });
   };
 
-  const handleUpdateMaterialWorkOrder = (value: string) => {
-    updateProject(projectId, { materialWorkOrder: value });
+  const handleUpdateMaterialWorkOrderAt = (index: number, value: string) => {
+    const n = materialRoutes.length;
+    const cur = getMaterialWorkOrderList(project, n);
+    const next = Array.from({ length: n }, (_, i) =>
+      i === index ? value : cur[i] ?? ''
+    );
+    updateProject(projectId, { materialWorkOrders: next });
   };
 
   const handleProcessTraveler = () => {
@@ -99,11 +88,22 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
         const idx = projects.findIndex((p) => p.id === projectId);
         if (idx !== -1) {
           setProjects((prev) =>
-            prev.map((p, i) =>
-              i === idx
-                ? { ...p, pdfParsed: true, pdfData: data }
-                : p
-            )
+            prev.map((p, i) => {
+              if (i !== idx) return p;
+              const newRoutes = data.materialRoutes ?? [];
+              const prevCount = p.pdfData?.materialRoutes?.length ?? 0;
+              const prevList = getMaterialWorkOrderList(p, prevCount);
+              const materialWorkOrders = Array.from(
+                { length: newRoutes.length },
+                (_, j) => String(prevList[j] ?? '')
+              );
+              return {
+                ...p,
+                pdfParsed: true,
+                pdfData: data,
+                materialWorkOrders,
+              };
+            })
           );
         }
         setTravelerStatus('解析完畢');
@@ -139,7 +139,11 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
           </div>
         </div>
 
-        <div className={styles.workOrderRow}>
+        <div
+          className={`${styles.workOrdersGrid} ${
+            materialRoutes.length === 0 ? styles.workOrdersGridSingle : ''
+          }`}
+        >
           <div className={styles.workOrderSection}>
             <span className={styles.label}>工單號碼：</span>
             <input
@@ -150,17 +154,26 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
               onChange={(e) => handleUpdateWorkOrder(e.target.value)}
             />
           </div>
-          <div className={styles.workOrderSection}>
-            <span className={styles.label}>材料工單：</span>
-            <input
-              type="text"
-              className={styles.workOrderInput}
-              placeholder="請輸入材料工單號碼..."
-              value={project.materialWorkOrder ?? ''}
-              onChange={(e) => handleUpdateMaterialWorkOrder(e.target.value)}
-            />
-          </div>
+          {materialRoutes.map((g, i) => (
+            <div key={g.segmentCode} className={styles.workOrderSection}>
+              <span className={styles.label}>材料工單（{g.segmentCode}）：</span>
+              <input
+                type="text"
+                className={styles.workOrderInput}
+                placeholder={`第 ${i + 1} 段材料工單`}
+                value={materialWoList[i] ?? ''}
+                onChange={(e) =>
+                  handleUpdateMaterialWorkOrderAt(i, e.target.value)
+                }
+              />
+            </div>
+          ))}
         </div>
+        {materialRoutes.length === 0 && project.pdfParsed && (
+          <p className={styles.materialWoHint}>
+            此手順書無「手順書(材)」製程段，無需填寫材料工單。
+          </p>
+        )}
 
         <div className={styles.stationRow}>
           <div className={styles.stationSection}>
@@ -173,18 +186,6 @@ export function DetailView({ projectId, onClose }: DetailViewProps) {
               }
             >
               {currentStation || '-'}
-            </span>
-          </div>
-          <div className={styles.stationSection}>
-            <span className={styles.label}>材料站點：</span>
-            <span
-              className={
-                materialStationLine !== '-'
-                  ? styles.materialStationHighlight
-                  : undefined
-              }
-            >
-              {materialStationLine}
             </span>
           </div>
         </div>

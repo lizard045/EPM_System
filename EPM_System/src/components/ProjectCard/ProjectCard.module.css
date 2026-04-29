@@ -47,16 +47,6 @@
   border-color: #f5c6cb;
 }
 
-.materialPosTag {
-  background-color: #deecf9;
-  color: #005a9e;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.85em;
-  font-weight: bold;
-  border: 1px solid #0078d4;
-}
-
 .pdfRemind {
   color: #d83b01;
   font-size: 0.75em;

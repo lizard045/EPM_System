@@ -23,7 +23,6 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
     propertyProgressModel,
     shippingSafetyModel,
     alerts,
-    materialStationTag,
   } = useProjectCardData(project);
   const { workOrder, mpn, formNo, qty, deadline, pdfParsed } = project;
   return (
@@ -37,11 +36,6 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
             }`}
           >
             目前站點：{currentStationName}
-          </div>
-        )}
-        {materialStationTag && (
-          <div className={styles.materialPosTag}>
-            材料站點：{materialStationTag}
           </div>
         )}
         {!pdfParsed && (

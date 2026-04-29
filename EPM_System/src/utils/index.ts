@@ -17,15 +17,22 @@ export {
 export type { ProductionProgressViewModel, ProductionStepperIndex } from './productionProgressUtils';
 export { computePropertyManagementProgress } from './propertyManagementProgressUtils';
 export type {
+  MaterialSlotsProgress,
   PropertyManagementProgressModel,
   PropertyPendingItem,
   PropertyPendingKind,
   PropertyProgressCategory,
 } from './propertyManagementProgressUtils';
 export {
+  computeMaterialSegmentLit,
+  computeMaterialWipFoundAny,
+  getMaterialWorkOrderList,
+} from './materialWorkOrderUtils';
+export {
   formatMaterialStationDisplay,
   isMaterialCompletionStation,
   resolveMaterialWipAgainstRoutes,
+  resolveMaterialWipAgainstSegment,
 } from './materialRouteUtils';
 export type { MaterialWipResolution } from './materialRouteUtils';
 export { buildShippingSafetyRateViewModel } from './shippingSafetyRateUtils';

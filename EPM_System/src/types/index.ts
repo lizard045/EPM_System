@@ -36,7 +36,11 @@ export interface Project {
   qty: string;
   deadline: string;
   workOrder: string;
-  /** 材料工單號碼（比對 WIP 用；空白則沿用上方工單號碼） */
+  /**
+   * 材料工單（依手順書(材)製程段序與 F03、P04…一一對應；優先於下方舊欄位）
+   */
+  materialWorkOrders?: string[];
+  /** @deprecated 請改用 materialWorkOrders；舊資料相容仍會讀取 */
   materialWorkOrder?: string;
   pdfParsed: boolean;
   pdfData: PdfData | null;

@@ -3,7 +3,6 @@
  */
 
 import { isFutureDate } from './dateUtils';
-import type { MaterialWipResolution } from './materialRouteUtils';
 import type { Project } from '../types';
 
 const PART_GLOBAL_INCOMPLETE = ['尚未', '待', '未齊'] as const;
@@ -36,11 +35,19 @@ export interface PropertyProgressCategory {
   hasExcelHint: boolean;
 }
 
+/** 物管「材料」列：每個製程段一欄，亮燈表示已到材料完工站 */
+export interface MaterialSlotsProgress {
+  codes: string[];
+  lit: boolean[];
+}
+
 export interface PropertyManagementProgressModel {
   parts: PropertyProgressCategory;
   tooling: PropertyProgressCategory;
   material: PropertyProgressCategory;
   consumables: PropertyProgressCategory;
+  /** 有手順書(材)時：每段 F03、P04… 一格與亮燈狀態 */
+  materialSlots: MaterialSlotsProgress | null;
   /** 尚未入料／未備妥項目（依零件→模治具→補材順序） */
   pendingItems: PropertyPendingItem[];
 }
@@ -155,13 +162,10 @@ function computeToolingCategory(project: Project, toolDeliveryMap: Record<string
   };
 }
 
-function computeMaterialCategory(
-  project: Project,
-  resolution: MaterialWipResolution | undefined,
-  wipFound: boolean
-): PropertyProgressCategory {
+function computeMaterialCategory(project: Project, wipFound: boolean): PropertyProgressCategory {
   const routes = project.pdfData?.materialRoutes ?? [];
-  if (!project.pdfParsed || routes.length === 0) {
+  const segCount = routes.length;
+  if (!project.pdfParsed || segCount === 0) {
     return {
       label: '材料',
       total: 0,
@@ -171,24 +175,10 @@ function computeMaterialCategory(
     };
   }
 
-  const flatStations = routes.flatMap((g) => g.stations);
-  const totalSteps = flatStations.length;
-
-  let received = 0;
-  if (resolution?.matchedStation && totalSteps > 0) {
-    const matched = resolution.matchedStation;
-    const idx = flatStations.findIndex(
-      (s) => s.code === matched.code && s.name === matched.name
-    );
-    if (idx >= 0) {
-      received = resolution.isCompletion ? totalSteps : idx + 1;
-    }
-  }
-
   return {
     label: '材料',
-    total: totalSteps,
-    received,
+    total: segCount,
+    received: 0,
     hasTravelerItems: true,
     hasExcelHint: wipFound,
   };
@@ -332,16 +322,19 @@ export function computePropertyManagementProgress(
   partDeliveryMap: Record<string, string>,
   toolDeliveryMap: Record<string, string>,
   materialLotDeliveryMap: Record<string, string>,
-  materialCtx?: { resolution: MaterialWipResolution; wipFound: boolean }
+  materialExtra?: {
+    slots: MaterialSlotsProgress | null;
+    wipFoundAny: boolean;
+  }
 ): PropertyManagementProgressModel {
-  const materialResolution = materialCtx?.resolution;
-  const wipFound = materialCtx?.wipFound ?? false;
+  const wipFound = materialExtra?.wipFoundAny ?? false;
 
   return {
     parts: computePartsCategory(project, partDeliveryMap),
     tooling: computeToolingCategory(project, toolDeliveryMap),
-    material: computeMaterialCategory(project, materialResolution, wipFound),
+    material: computeMaterialCategory(project, wipFound),
     consumables: computeConsumablesCategory(project, materialLotDeliveryMap),
+    materialSlots: materialExtra?.slots ?? null,
     pendingItems: collectPendingItems(
       project,
       partDeliveryMap,

@@ -4,11 +4,30 @@
 
 import { useState } from 'react';
 import type {
+  MaterialSlotsProgress,
   PropertyManagementProgressModel,
   PropertyPendingItem,
   PropertyProgressCategory,
 } from '../../../utils';
 import styles from './PropertyManagementProgressSection.module.css';
+
+function MaterialSlotTrack({ slots }: { slots: MaterialSlotsProgress }) {
+  if (!slots.codes.length) return null;
+  return (
+    <div className={styles.materialSlotTrack} aria-hidden>
+      {slots.codes.map((code, i) => (
+        <div key={`${code}-${i}`} className={styles.materialSlotWrap}>
+          <div
+            className={`${styles.materialSlot} ${
+              slots.lit[i] ? styles.materialSlotLit : ''
+            }`}
+          />
+          <span className={styles.materialSlotLabel}>{code}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface PropertyManagementProgressSectionProps {
   model: PropertyManagementProgressModel;
@@ -112,11 +131,18 @@ export function PropertyManagementProgressSection({
         <div className={styles.body}>
           {rows.map((cat) => {
             const hint = rowHint(cat, pdfParsed);
+            const ms = model.materialSlots;
+            const useMaterialSlots =
+              cat.label === '材料' && !!ms && ms.codes.length > 0;
             return (
               <div key={cat.label} className={styles.row}>
                 <span className={styles.rowLabel}>{cat.label}</span>
                 <div className={styles.rowBlock}>
-                  <SegmentBar cat={cat} />
+                  {useMaterialSlots && ms ? (
+                    <MaterialSlotTrack slots={ms} />
+                  ) : (
+                    <SegmentBar cat={cat} />
+                  )}
                   {hint && <div className={styles.hint}>{hint}</div>}
                 </div>
               </div>
