@@ -3,7 +3,7 @@
  */
 
 import { useMemo } from 'react';
-import { computeProjectAlerts } from '../utils/projectAlertsCompute';
+import { computeProjectAlerts } from '../utils';
 import type { Project, ProjectAlerts } from '../types';
 
 export function useProjectAlerts(

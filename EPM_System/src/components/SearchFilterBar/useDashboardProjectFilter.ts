@@ -13,7 +13,7 @@ import {
   projectMatchesStatus,
   sortProjects,
   STATION_FILTER_NONE,
-} from '../../utils/dashboardFilterUtils';
+} from '../../utils';
 import {
   DEFAULT_DASHBOARD_FILTERS,
   DEFAULT_SORT_MODE,

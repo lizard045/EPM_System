@@ -35,17 +35,18 @@ src/
 │   ├── EPMContext.tsx              # Context 型別與 useEPM
 │   └── EPMProvider.tsx             # Provider（包 useEPMStore）
 │
-├── utils/                          # 純函式工具
+├── utils/                          # 純函式工具（應用層請由 index 匯入）
 │   ├── dateUtils.ts
-│   ├── stationUtils.ts
-│   ├── dashboardFilterUtils.ts     # 搜尋/篩選/排序輔助
 │   ├── projectAlertsCompute.ts     # 預警欄位計算
+│   ├── dashboardFilterUtils.ts     # 搜尋/篩選/排序輔助
+│   ├── stationUtils.ts
+│   ├── wipLookupUtils.ts           # WIP / 在站查詢輔助
 │   ├── productionProgressUtils.ts  # 生產進度計算
 │   ├── propertyManagementProgressUtils.ts  # 物管進度計算
-│   ├── shippingSafetyRateUtils.ts  # 出貨/安全庫存相關計算
-│   ├── wipLookupUtils.ts           # WIP / 在站查詢輔助
 │   ├── materialRouteUtils.ts       # WIP 製程與手順書材站點比對、材料完工站
-│   └── index.ts
+│   ├── materialWorkOrderUtils.ts   # 材料工單與手順書(材)製程段對齊
+│   ├── shippingSafetyRateUtils.ts  # 出貨/安全庫存相關計算
+│   └── index.ts                    # barrel：對外統一匯出
 │
 ├── components/
 │   ├── HeaderPanel/                # 頂部匯入區（傳票/工具/備料/站點）
@@ -105,7 +106,7 @@ src/
 | **parsers** | 來源檔案解析（HTML / Excel） |
 | **hooks** | 狀態封裝與副作用邏輯 |
 | **context** | 全域狀態注入 |
-| **utils** | 純函式計算（篩選、預警、站點、進度、WIP、材站路徑、出貨/安全庫存） |
+| **utils** | 純函式計算（篩選、預警、站點、進度、WIP、材站路徑、材工單段、出貨/安全庫存）；請由 `utils/index` 匯入 |
 | **components** | 可重用 UI 元件與區塊 |
 | **views** | 頁面組裝與使用者流程 |
 

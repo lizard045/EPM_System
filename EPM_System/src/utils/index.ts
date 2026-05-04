@@ -1,4 +1,15 @@
 export { isFutureDate, fixDateDisplay } from './dateUtils';
+export { computeProjectAlerts } from './projectAlertsCompute';
+export {
+  STATION_FILTER_NONE,
+  collectStationFilterOptions,
+  collectUniqueField,
+  getEffectiveCreatedMs,
+  projectMatchesDateRange,
+  projectMatchesStationKey,
+  projectMatchesStatus,
+  sortProjects,
+} from './dashboardFilterUtils';
 export {
   findMatchingPdfStation,
   getCurrentStationDisplay,
